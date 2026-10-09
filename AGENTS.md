@@ -43,3 +43,9 @@ holds only what is specific to formats.
   is defined there. On MSVC, which never defines
   `BOOST_URL_HAS_CXX20_CONSTEXPR`, even the grammar's error category is
   defined there, so no format links without it.
+- **idna.** formats asks `webcpp::idna`'s public interface, never its
+  `detail` (the include boundary checks it): a host name's A-label, in any
+  case, is lowercased and judged by `idna::check_label`, one label at a
+  time. A verdict of idna's that a test of formats finds wrong becomes a
+  test in idna, red first, reported to idna's track; formats never works
+  around it.

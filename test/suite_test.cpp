@@ -65,6 +65,8 @@ constexpr std::array validators{
     mapping{"date", [](std::string_view s) { return formats::is_date(s); }},
     mapping{"date-time", [](std::string_view s) { return formats::is_date_time(s); }},
     mapping{"duration", [](std::string_view s) { return formats::is_duration(s); }},
+    mapping{"email", [](std::string_view s) { return formats::is_email(s); }},
+    mapping{"hostname", [](std::string_view s) { return formats::is_hostname(s); }},
     mapping{"ipv4", [](std::string_view s) { return formats::is_ipv4(s); }},
     mapping{"ipv6", [](std::string_view s) { return formats::is_ipv6(s); }},
     mapping{"json-pointer", [](std::string_view s) { return formats::is_json_pointer(s); }},
@@ -84,8 +86,6 @@ constexpr std::array validators{
  to validators; the list leaves the runner once it is empty.
 */
 constexpr auto pending = std::to_array<std::string_view>({
-    "email",
-    "hostname",
     "idn-email",
     "idn-hostname",
     "iri",

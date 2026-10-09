@@ -31,6 +31,9 @@ webcpp.run json_pointer : json_pointer_test.cpp ;
 # IP addresses, URIs and URI references, through Boost.URL.
 webcpp.run ip : ip_test.cpp ;
 webcpp.run uri : uri_test.cpp ;
+# Host names, with their A-labels judged by idna, and e-mail addresses.
+webcpp.run hostname : hostname_test.cpp ;
+webcpp.run email : email_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;

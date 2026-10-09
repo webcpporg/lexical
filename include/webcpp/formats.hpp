@@ -17,7 +17,9 @@
 #include <webcpp/formats/config.hpp>
 
 #include <webcpp/formats/date_time.hpp>
+#include <webcpp/formats/email.hpp>
 #include <webcpp/formats/grammar.hpp>
+#include <webcpp/formats/hostname.hpp>
 #include <webcpp/formats/ip.hpp>
 #include <webcpp/formats/json_pointer.hpp>
 #include <webcpp/formats/uri.hpp>

@@ -10,6 +10,8 @@
 // given.
 
 #include <webcpp/formats/date_time.hpp>
+#include <webcpp/formats/email.hpp>
+#include <webcpp/formats/hostname.hpp>
 #include <webcpp/formats/ip.hpp>
 #include <webcpp/formats/json_pointer.hpp>
 #include <webcpp/formats/uri.hpp>
@@ -244,6 +246,26 @@ void uris_allocate_nothing() {
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
+/**
+ Host names and e-mail addresses allocate nothing: a 100,000-octet name, and A-labels idna
+ checks.
+*/
+void hosts_allocate_nothing() {
+    std::string long_name;
+    while (long_name.size() < 100'000) {
+        long_name += std::string(63, 'a') + ".";
+    }
+    long_name += "com";
+    const std::string long_email = "a@" + long_name;
+    const std::size_t before = global_allocations();
+    BOOST_TEST(!webcpp::formats::is_hostname(long_name));
+    BOOST_TEST(webcpp::formats::is_hostname("xn--9n2bp8q.xn--9t4b11yi5a"));
+    BOOST_TEST(!webcpp::formats::is_hostname("xn--07jceefgh4c"));
+    BOOST_TEST(webcpp::formats::is_email("\"joe bloggs\"@[IPv6:2001:db8::1]"));
+    BOOST_TEST(!webcpp::formats::is_email(long_email));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+}
+
 }  // namespace
 
 int main() {
@@ -255,5 +277,6 @@ int main() {
     dates_and_times_allocate_nothing();
     identifiers_allocate_nothing();
     uris_allocate_nothing();
+    hosts_allocate_nothing();
     return boost::report_errors();
 }
