@@ -47,12 +47,12 @@ webcpp.run grammar : grammar_test.cpp ;
 webcpp.run allocation : allocation_test.cpp ;
 
 # The JSON Schema Test Suite comes from /webcpp/third_party, which gives its
-# root as WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE; the known-failure lists are
-# formats' own, named with forward slashes, the define quoted whole, for a
-# checkout whose path holds a space. It runs natively and on emscripten,
-# whose -sNODERAWFS=1 reads the host's files. On wasip2 and wasip3 it says by
-# name that it is skipped, and fails once it can read the suite, until the
-# suite's and the lists' directories are given to it (webcpp.data).
+# root as WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE and its directory to a WASI
+# program; the known-failure lists are formats' own, named with forward
+# slashes, the define quoted whole, for a checkout whose path holds a
+# space, and given to a WASI program by webcpp.data. On every target:
+# natively, on emscripten through -sNODERAWFS=1, under wasmtime through
+# --dir.
 path-constant KNOWN_FAILURES : known_failures ;
 local known = [ regex.replace $(KNOWN_FAILURES) "\\\\" "/" ] ;
 local lists = [ glob known_failures/*.json ] ;
@@ -60,4 +60,5 @@ webcpp.run suite : suite_test.cpp
   : <library>/webcpp//boost_json
     <library>/webcpp/third_party//json-schema-test-suite
     <define>"\"WEBCPP_TEST_FORMATS_KNOWN_FAILURES=\\\"$(known)\\\"\""
-    <dependency>$(lists) ;
+    <dependency>$(lists)
+    [ webcpp.data $(KNOWN_FAILURES) ] ;

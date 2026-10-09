@@ -13,9 +13,10 @@
 // that maps to no validator. It also fails, by name, on a known failure that names a test no
 // validator judges (a pending or unknown format, a non-string test), on a list that names a test
 // twice, on a case whose schema holds a keyword besides format, and on a line of the lists below
-// that names a format or a dialect the suite does not hold. On WASI it says by name that it is
-// skipped, until the build gives it the suite's directory. WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE
-// names the suite's root, from /webcpp/third_party//json-schema-test-suite, and
+// that names a format or a dialect the suite does not hold. It runs on every target, the suite
+// and its known-failure lists reaching a WASI program through webcpp.data.
+// WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE names the suite's root, from
+// /webcpp/third_party//json-schema-test-suite, and
 // WEBCPP_TEST_FORMATS_KNOWN_FAILURES the lists' directory, from test/Jamfile. A known failure names
 // its file as json_schema's lists do, by its path under the dialect's directory
 // (optional/format/uuid.json).
@@ -509,42 +510,9 @@ void check_every_format_met(const std::set<std::pair<std::string, std::string>>&
     }
 }
 
-#ifdef __wasi__
-/** Whether this program is built for WASI, where it reads no host file but in a directory given. */
-constexpr bool built_for_wasi = true;
-#else
-/** Whether this program is built for WASI, where it reads no host file but in a directory given. */
-constexpr bool built_for_wasi = false;
-#endif
-
-/**
- Says by name, on the standard output, that the suite is skipped on WASI, and fails if this program
- can read the suite after all.
-
- Tip: wasmtime gives a program no host directory unless told, and the build gives it the suite's
- and the lists' only through webcpp.data, which it does not use yet. A skip that outlives that
- reason fails, so that the suite is run on WASI once it can be.
-*/
-int skip_on_wasi() {
-    std::error_code error;
-    const bool readable =
-        fs::is_directory(fs::path(WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE "/tests"), error);
-    if (!BOOST_TEST(!readable)) {
-        std::cerr << "suite: the suite is readable on WASI: run it here, and remove its skip\n";
-        return boost::report_errors();
-    }
-    std::cout << "suite: skipped on WASI: the suite and its known-failure lists reach a WASI "
-                 "program only through the data directory of webcpp.data, which this build does "
-                 "not give it yet\n";
-    return boost::report_errors();
-}
-
 }  // namespace
 
 int main() {
-    if (built_for_wasi) {
-        return skip_on_wasi();
-    }
     if (!policies_name_what_exists()) {
         return boost::report_errors();
     }

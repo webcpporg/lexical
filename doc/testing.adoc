@@ -28,10 +28,9 @@ The official JSON-Schema-Test-Suite's format tests run against the
 validators directly, in every draft from 4 to 2020-12 and v1: a string test
 passes when the validator's verdict is the test's. The runner fails on a
 failure its dialect's known-failure list does not name, and on a listed test
-that passes or that the suite does not hold. It runs natively and on
-emscripten. On wasm32-wasip2 and wasm32-wasip3 it says by name that it is
-skipped: a WASI program reads no file of the host's but in a directory
-wasmtime is given, and the build does not give it the suite's yet.
+that passes or that the suite does not hold. It runs on every target: the
+suite's own directory and formats' known-failure lists reach a WASI program
+through webcpp.data, the directory wasmtime is given with `--dir`.
 
 The test matrix of every lane is published at
 https://webcpporg.github.io/webcpp/report/.
