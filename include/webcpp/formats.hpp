@@ -16,6 +16,7 @@
 
 #include <webcpp/formats/config.hpp>
 
+#include <webcpp/formats/date_time.hpp>
 #include <webcpp/formats/grammar.hpp>
 
 #endif  // WEBCPP_FORMATS_HPP

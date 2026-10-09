@@ -22,6 +22,8 @@ expression, and those only through a `std::pmr::memory_resource`.
 
 include::introduction.adoc[]
 
+include::dates.adoc[]
+
 include::errors.adoc[]
 
 include::testing.adoc[]

@@ -22,6 +22,8 @@ webcpp.compile config_developer_defined : config_test.cpp
 
 # The terminals every format shares: UTF-8, the character sets, the rules.
 webcpp.run detail : detail_test.cpp ;
+# RFC 3339's dates, times and durations.
+webcpp.run date_time : date_time_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;

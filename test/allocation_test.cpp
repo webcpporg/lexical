@@ -9,6 +9,8 @@
 // beyond their inline buffer and is_regex, which allocate only through the resource they are
 // given.
 
+#include <webcpp/formats/date_time.hpp>
+
 #include <boost/config.hpp>
 #include <boost/core/lightweight_test.hpp>
 #include <boost/throw_exception.hpp>
@@ -192,6 +194,26 @@ void exhaustion_throws_bad_alloc() {
 }
 #endif
 
+/**
+ Dates, times and durations allocate nothing, a fraction or a number of 100,000 digits
+ included.
+*/
+void dates_and_times_allocate_nothing() {
+    std::string fraction = "1985-04-12T23:20:50.";
+    fraction.append(100'000, '9');
+    fraction += 'Z';
+    std::string duration = "P";
+    duration.append(100'000, '7');
+    duration += 'D';
+    const std::size_t before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_date_time(fraction));
+    BOOST_TEST(webcpp::formats::is_duration(duration));
+    BOOST_TEST(webcpp::formats::is_date("2020-02-29"));
+    BOOST_TEST(webcpp::formats::is_time("23:59:60Z"));
+    BOOST_TEST(!webcpp::formats::is_time("23:59:60Z", webcpp::formats::leap_seconds::refused));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+}
+
 }  // namespace
 
 int main() {
@@ -200,5 +222,6 @@ int main() {
 #ifndef BOOST_NO_EXCEPTIONS
     exhaustion_throws_bad_alloc();
 #endif
+    dates_and_times_allocate_nothing();
     return boost::report_errors();
 }

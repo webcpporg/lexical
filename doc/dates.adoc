@@ -1,0 +1,29 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-dates]
+== Dates and times
+
+`is_date_time`, `is_date` and `is_time` check RFC 3339's `date-time`,
+`full-date` and `full-time` (section 5.6), and `is_duration` its appendix A's
+`duration`, exactly: ASCII digits only, a month 01 to 12, a day that exists
+in its month of the Gregorian calendar (February 29 in a year divisible by 4,
+and not by 100 unless by 400), hours 00 to 23, minutes 00 to 59, any number
+of fraction digits, and an offset of `Z` or `+hh:mm`/`-hh:mm`. `T` and `Z`
+match in either case, as RFC 3339's note says; so do the letters of a
+duration, which are ABNF's quoted strings (RFC 5234 2.3).
+
+Second 60 is a leap second. RFC 3339 allows it when the time, moved to UTC
+by its offset, is 23:59, and `is_time(s)` follows it, as drafts 7 to 2020-12
+of JSON Schema test. JSON Schema v1 says a `time` must not hold one:
+`is_time(s, leap_seconds::refused)` is its `time`. `is_date_time` allows them
+in every draft, v1 included, as the suite's `date-time` tests say. The date
+of a leap second is not checked against IERS's list: no table, the same
+answer every year.
+
+A duration's numbers are never converted, so any number of digits is valid
+and nothing overflows. `P1Y2D` is invalid: appendix A keeps years, months
+and days in that order and contiguous, and a week stands alone.
