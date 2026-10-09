@@ -283,6 +283,10 @@ void repeat_matches_from_least_to_most() {
     repeats_to(list, "1,", "1");
     constexpr auto any = detail::repeat_rule(urlg::delim_rule(urlg::digit_chars), pair);
     repeats_to(any, "x", "");
+    // A first repetition that fails after reading part of its input is given back whole.
+    constexpr auto ab = urlg::tuple_rule(urlg::delim_rule('a'), urlg::delim_rule('b'));
+    repeats_to(detail::repeat_rule(ab, ab), "ac", "");
+    repeats_to(detail::repeat_rule(ab, ab), "ababac", "abab");
     repeats_to(any, "", "");
     for (const std::string_view refused : {"x", "", ",1"}) {
         char const* it = refused.data();

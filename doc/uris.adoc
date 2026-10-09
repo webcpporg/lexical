@@ -7,9 +7,11 @@
 [#formats-uris]
 == URIs and IRIs
 
-`is_uri` is Boost.URL's `parse_uri`: RFC 3986's `URI`, a scheme required and
-a fragment allowed. `is_uri_reference` is Boost.URL's `parse_uri_reference`,
-a URI or a relative reference, with one guard. RFC 3986 4.2 gives a relative
+`is_uri` is Boost.URL's `parse_uri`, RFC 3986's `URI`, a scheme required and
+a fragment allowed, and `is_uri_reference` is Boost.URL's
+`parse_uri_reference`, a URI or a relative reference, each with a guard of
+formats', and so are their rules, `uri_rule` and `uri_reference_rule`.
+RFC 3986 4.2 gives a relative
 reference that has an authority a `path-abempty`, empty or led by `/`.
 Boost.URL 1.92 accepts `//example.com:abc/p`, read as host `example.com`, an
 empty port and the path `abc/p`, and `//a@b@example.com/`, read as user `a`,
@@ -19,6 +21,15 @@ rule matches `http://a@b` of `http://a@b@example.com/`. formats refuses a
 relative reference whose path after an authority is neither empty nor led by
 `/`, and `uri_reference_rule` refuses both forms alike with `error::invalid`.
 The guard stays until a Boost release refuses those references itself.
+
+RFC 3986 holds `[` and `]` only around an IP literal (3.2.2): a path, a query
+and a fragment hold them percent-encoded, as `%5B` and `%5D`. Boost.URL 1.92
+refuses them in a path and a fragment, and accepts them in a query:
+`http://a/?[x]` is a URI for Boost.URL. formats refuses a bracket in a query,
+in `is_uri`, `is_uri_reference`, `is_iri`, `is_iri_reference` and their rules
+alike, which give `error::invalid` for it inside a larger grammar; an IP
+literal, `http://[::1]/`, and `%5B` in a query stay valid. This guard stays
+until a Boost release refuses those brackets itself.
 
 `is_iri` and `is_iri_reference` check RFC 3987's IRI and IRI reference,
 which allow non-ASCII code points, by mapping the IRI to a URI as RFC 3987

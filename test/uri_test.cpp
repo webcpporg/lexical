@@ -29,10 +29,12 @@ namespace urlg = boost::urls::grammar;
 
 namespace {
 
+/** Checks `text` against `valid`, and that the function and the rule agree. */
 void uri(std::string_view text, bool valid) {
     if (!BOOST_TEST_EQ(formats::is_uri(text), valid)) {
         std::cerr << "uri: \"" << text << "\"\n";
     }
+    BOOST_TEST_EQ(formats::is_uri(text), urlg::parse(text, fg::uri_rule).has_value());
 }
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
@@ -103,6 +105,49 @@ void the_guard() {
     reference("//", true);
 }
 
+void brackets_only_around_an_ip_literal() {
+    // RFC 3986 3.2.2: "[" and "]" delimit an IP literal and nothing else; a query (3.4), a path
+    // (3.3) and a fragment (3.5) hold them only percent-encoded. Boost.URL 1.92 takes them in a
+    // query.
+    constexpr std::array<std::string_view, 8> refused{
+        "http://a/?[x]",    // the query
+        "http://a/?]",      //
+        "http://a/?a=[1]",  //
+        "urn:a?[x]",        //
+        "http://a/[x]",     // the path
+        "http://a/p]q",     //
+        "http://a/#[x]",    // the fragment
+        "http://[x]@a/",    // the user information
+    };
+    for (const std::string_view text : refused) {
+        uri(text, false);
+        reference(text, false);
+    }
+    constexpr std::array<std::string_view, 5> relative{
+        "?[x]",      //
+        "a?[x]",     //
+        "//h?]",     //
+        "/p?a=[1]",  //
+        "#[x]",      //
+    };
+    for (const std::string_view text : relative) {
+        reference(text, false);
+    }
+    uri("http://[::1]/", true);
+    uri("http://[::1]:80/p?q#f", true);
+    uri("http://a/?%5Bx%5D", true);
+    uri("http://[::1]/?%5B%5D#%5D", true);
+    reference("//[::1]/p", true);
+    reference("?%5B", true);
+}
+
+void boost_url_still_takes_brackets_in_a_query() {
+    // When this fails, Boost.URL refuses them itself, and the bracket guard may leave in a change
+    // of its own, with a changelog line; brackets_only_around_an_ip_literal stays.
+    BOOST_TEST(boost::urls::parse_uri("http://a/?[x]").has_value());
+    BOOST_TEST(boost::urls::parse_uri_reference("?[x]").has_value());
+}
+
 void boost_url_still_needs_the_guard() {
     // When this fails, Boost.URL refuses the input itself: refuses_relative_authority_path and its
     // changelog line leave, in the change that moves to that Boost release, and the_guard stays.
@@ -159,6 +204,24 @@ void the_rule_inside_a_grammar() {
     for (const std::string_view text : guarded) {
         invalid_inside_a_grammar(text);
     }
+    // A bracket in a query, which Boost.URL's rule would match whole.
+    invalid_inside_a_grammar("http://a/?[x] rest");
+    invalid_inside_a_grammar("?[x] rest");
+    const std::string_view bracket = "http://a/?[x] rest";
+    char const* in_uri = bracket.data();
+    const auto u = fg::uri_rule.parse(in_uri, bracket.data() + bracket.size());
+    BOOST_TEST(u.has_error() && u.error() == urlg::error::invalid);
+    BOOST_TEST(in_uri == bracket.data());
+    const std::string_view after = "http://a@b@example.com/";
+    char const* in_after = after.data();
+    const auto a = fg::uri_rule.parse(in_after, after.data() + after.size());
+    BOOST_TEST(a.has_error() && a.error() == urlg::error::invalid);
+    BOOST_TEST(in_after == after.data());
+    const std::string_view spaced = "http://[::1]/?q rest";
+    char const* in_spaced = spaced.data();
+    const auto m = fg::uri_rule.parse(in_spaced, spaced.data() + spaced.size());
+    BOOST_TEST(m.has_value() && m.unsafe_value().buffer() == "http://[::1]/?q");
+    BOOST_TEST(in_spaced == spaced.data() + 15);
     // What no path segment starts ends a reference as Boost.URL ends it: a colon after the port, a
     // space, and what a query cannot hold.
     matches_inside_a_grammar("http://h:80:x", "http://h:80");
@@ -196,6 +259,8 @@ int main() {
     rfc_3986_section_1_1_2();
     uris_and_references();
     the_guard();
+    brackets_only_around_an_ip_literal();
+    boost_url_still_takes_brackets_in_a_query();
     boost_url_still_needs_the_guard();
     zone_ids_keep_boost_urls_verdict();
     the_rule_inside_a_grammar();

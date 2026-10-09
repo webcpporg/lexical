@@ -94,6 +94,13 @@ void non_ascii_only_where_rfc_3986_has_pct_encoded() {
     iri("http://[v1.\xC3\xA9]/", false);  // IPvFuture
     iri("http://\xC3\xA9@[::1]/\xC3\xA9?\xC3\xA9", true);
     iri("http://[::1]/\xC3\xA9", true);
+    // A bracket outside an IP literal, which Boost.URL takes in a query.
+    iri("http://a/?[\xC3\xA9]", false);
+    iri("http://\xC3\xA9/?]", false);
+    iri("http://\xC3\xA9/#[x]", false);
+    reference("\xC3\xA9?[x]", false);
+    reference("\xC3\xA9/[x]", false);
+    iri("http://[::1]/\xC3\xA9?%5B\xC3\xA9%5D", true);
     iri("http://\xC3\xA9@\xC3\xA9/\xC3\xA9?\xC3\xA9#\xC3\xA9", true);
     reference("//\xC6\x92\xC3\xB8\xC3\xB8.\xC3\x9F\xC3\xA5r/?\xE2\x88\x82", true);
     iri(std::string_view("http://a/\0", 10), false);

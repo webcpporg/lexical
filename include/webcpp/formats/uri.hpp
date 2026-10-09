@@ -5,9 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- URIs and IRIs (RFC 3986, RFC 3987), as validators and Boost.URL rules: `uri` is Boost.URL's own
- rule, `boost::urls::uri_rule`, `uri-reference` Boost.URL's with a guard of formats', and the IRIs
- formats' rules, which map an IRI to a URI that Boost.URL parses.
+ URIs and IRIs (RFC 3986, RFC 3987), as validators and Boost.URL rules: `uri` and `uri-reference`
+ are Boost.URL's rules with a guard of formats', and the IRIs formats' rules, which map an IRI to a
+ URI that Boost.URL parses.
 
  @see "URIs and IRIs", in the guide.
 */
@@ -22,8 +22,8 @@
 
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>
-#include <boost/url/parse.hpp>
 #include <boost/url/rfc/uri_reference_rule.hpp>
+#include <boost/url/rfc/uri_rule.hpp>
 #include <boost/url/url_view.hpp>
 
 #include <cstddef>
@@ -41,12 +41,62 @@ namespace urlg = boost::urls::grammar;
 namespace grammar {
 
 /**
+ The rule of RFC 3986 3's URI: Boost.URL's `uri_rule`, then a guard.
+
+ Boost.URL 1.92 accepts "[" and "]" in a query, which RFC 3986 holds only around an IP literal, and
+ stops a URI at an authority that holds two at signs; the guard refuses both with
+ `error::invalid`. Otherwise the rule yields Boost.URL's `url_view` of the URI, and stops where
+ Boost.URL's rule does.
+
+ @see "URIs and IRIs", in the guide.
+*/
+struct uri_rule_t {
+    /** The rule yields Boost.URL's view of the URI it matched. */
+    using value_type = boost::urls::url_view;
+
+    /**
+     Matches a URI at `it`.
+
+     @param it The start of the input: past the match on success, else unchanged.
+     @param end The end of the input.
+     @return The view of the URI; Boost.URL's error when its rule refuses the input;
+     `error::invalid` when the guard does.
+    */
+    [[nodiscard]] result<boost::urls::url_view> parse(char const*& it,
+                                                      char const* end) const noexcept;
+};
+
+/** The rule of RFC 3986's URI, guarded. */
+inline constexpr uri_rule_t uri_rule{};
+
+// parse reads no member, yet stays a const member: Boost.URL's Rule concept calls it on the rule.
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+inline result<boost::urls::url_view> uri_rule_t::parse(char const*& it,
+                                                       char const* end) const noexcept {
+    char const* const first = it;
+    auto uri = detail::urlg::parse(it, end, boost::urls::uri_rule);
+    if (!uri) {
+        it = first;
+        return uri.error();
+    }
+    // Read with unsafe_value: the result holds a value here, and operator* may throw.
+    const boost::urls::url_view view = uri.unsafe_value();
+    if (detail::refuses_authority_before_segment(view, it, end) ||
+        detail::refuses_bracket_in_query(view)) {
+        it = first;
+        return detail::urlg::error::invalid;
+    }
+    return uri;
+}
+
+/**
  The rule of RFC 3986 4.1's URI-reference: Boost.URL's `uri_reference_rule`, then a guard.
 
  Boost.URL 1.92 accepts a relative reference whose path after the authority is not
  `path-abempty` (RFC 3986 4.2), as `//example.com:abc/p`, whose port is not a number, and an
- authority that holds two at signs; with a scheme, it stops the URI at that authority. The guard
- refuses both forms with `error::invalid`. Otherwise the rule yields Boost.URL's `url_view` of the
+ authority that holds two at signs; with a scheme, it stops the URI at that authority. It also
+ accepts "[" and "]" in a query, which RFC 3986 holds only around an IP literal. The guard refuses
+ each with `error::invalid`. Otherwise the rule yields Boost.URL's `url_view` of the
  reference, and stops where Boost.URL's rule does.
 
  @see "URIs and IRIs", in the guide.
@@ -84,7 +134,8 @@ inline result<boost::urls::url_view> uri_reference_rule_t::parse(char const*& it
     // Read with unsafe_value: the result holds a value here, and operator* may throw.
     const boost::urls::url_view view = reference.unsafe_value();
     if (detail::refuses_relative_authority_path(view) ||
-        detail::refuses_authority_before_segment(view, it, end)) {
+        detail::refuses_authority_before_segment(view, it, end) ||
+        detail::refuses_bracket_in_query(view)) {
         it = first;
         return detail::urlg::error::invalid;
     }
@@ -93,7 +144,7 @@ inline result<boost::urls::url_view> uri_reference_rule_t::parse(char const*& it
 
 /**
  The rule of RFC 3987 2.2's IRI: an IRI checked code point by code point, mapped to a URI, and
- parsed by Boost.URL's `parse_uri`.
+ parsed by @ref uri_rule.
 
  A non-ASCII code point must be well-formed UTF-8 and in `ucschar`, or `iprivate` in the query;
  the bidirectional formatting characters are refused anywhere (RFC 3987 4.1), and so is any
@@ -166,7 +217,7 @@ inline result<text> iri_rule_t::parse(char const*& it, char const* end) const {
     }
     const std::string_view run(first, static_cast<std::size_t>(last - first));
     const bool valid = detail::with_mapped_iri(run, resource, [](std::string_view uri) {
-        return boost::urls::parse_uri(uri).has_value();
+        return detail::urlg::parse(uri, uri_rule).has_value();
     });
     if (!valid) {
         return detail::urlg::error::invalid;
@@ -195,11 +246,11 @@ inline result<text> iri_reference_rule_t::parse(char const*& it, char const* end
  Whether `s` is an RFC 3986 URI, JSON Schema's `uri`: a scheme, and a fragment allowed.
 
  @param s Any byte string.
- @return `boost::urls::parse_uri(s).has_value()`.
+ @return `parse(s, grammar::uri_rule).has_value()`.
  @see "URIs and IRIs", in the guide.
 */
 [[nodiscard]] inline bool is_uri(std::string_view s) noexcept {
-    return boost::urls::parse_uri(s).has_value();
+    return detail::urlg::parse(s, grammar::uri_rule).has_value();
 }
 
 /**

@@ -9,12 +9,16 @@
 // characters follow. refuses_relative_authority_path leaves with the first Boost release that
 // refuses those relative references itself (test/uri_test.cpp, boost_url_still_needs_the_guard);
 // refuses_authority_before_segment stays, since that release stops them at the authority too.
+// refuses_bracket_in_query covers Boost.URL 1.92's query characters, which hold "[" and "]"
+// (boost/url/rfc/detail/charsets.hpp, query_chars); it leaves with the first Boost release that
+// refuses them (test/uri_test.cpp, boost_url_still_takes_brackets_in_a_query).
 
 #ifndef WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
 #define WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
 
 #include <webcpp/formats/config.hpp>
 
+#include <boost/core/detail/string_view.hpp>
 #include <boost/url/rfc/pchars.hpp>
 #include <boost/url/url_view.hpp>
 
@@ -46,6 +50,14 @@ inline bool refuses_authority_before_segment(boost::urls::url_view u, char const
         return false;
     }
     return *next == '%' || segment_nc_chars(*next);
+}
+
+/**
+ True when a reference holds "[" or "]" in its query, which RFC 3986 3.4 refuses: the two
+ delimit an IP literal alone (3.2.2), and Boost.URL refuses them in a path and a fragment already.
+*/
+inline bool refuses_bracket_in_query(boost::urls::url_view u) noexcept {
+    return u.has_query() && u.encoded_query().find_first_of("[]") != boost::core::string_view::npos;
 }
 
 }  // namespace webcpp::formats::detail

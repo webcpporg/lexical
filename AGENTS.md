@@ -38,6 +38,16 @@ holds only what is specific to formats.
   Boost does, and `refuses_relative_authority_path` then leaves in a change
   of its own, with a changelog line, while `refuses_authority_before_segment`,
   `the_guard` and `the_rule_inside_a_grammar` stay.
+- **The bracket guard.** Boost.URL 1.92's query characters hold `[` and `]`
+  (`boost/url/rfc/detail/charsets.hpp`, `query_chars`), which RFC 3986
+  holds only around an IP literal. `refuses_bracket_in_query` refuses them
+  in formats' `uri_rule` and `uri_reference_rule`, so `is_uri`,
+  `is_uri_reference` and the IRIs, which parse their mapping with those
+  rules, refuse them alike. `uri_test`'s
+  `boost_url_still_takes_brackets_in_a_query` fails the day the configured
+  Boost refuses them itself, and the guard then leaves in a change of its
+  own, with a changelog line, while `brackets_only_around_an_ip_literal`
+  stays.
 - **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:
