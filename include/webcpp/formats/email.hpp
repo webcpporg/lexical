@@ -45,6 +45,12 @@ namespace urlg = boost::urls::grammar;
 inline constexpr std::size_t max_local_part_length = 64;
 
 /**
+ The longest Mailbox, in octets: RFC 5321 4.5.3.1.3's path of 256 octets less its two angle
+ brackets.
+*/
+inline constexpr std::size_t max_mailbox_length = 254;
+
+/**
  The length of the Atom at the start of `s`: 1*atext, a UTF8-non-ascii sequence counting as atext
  when `utf8`.
 */
@@ -180,7 +186,8 @@ inline constexpr auto address_literal_rule = urlg::tuple_rule(
 
 /**
  Matches a Mailbox at `it`, `local` its local part and `host` its domain: the local part, the at
- sign, then an address literal where "[" follows, else `host`, whose error is returned as it is.
+ sign, then an address literal where "[" follows, else `host`, whose error is returned as it is;
+ invalid when the whole is longer than 254 octets.
 
  Tip: the domain is dispatched here rather than made an alternative of a variant_rule, which
  answers mismatch when every alternative fails and would lose idna's reason.
@@ -203,16 +210,19 @@ grammar::result<grammar::text> parse_mailbox(char const*& it, char const* end,
             it = first;
             return urlg::error::invalid;
         }
-        return grammar::text(first, static_cast<std::size_t>(it - first));
-    }
-    if (const auto domain = host.parse(it, end); !domain) {
+    } else if (const auto domain = host.parse(it, end); !domain) {
         it = first;
         if (domain.error() == urlg::error::mismatch) {
             return urlg::error::invalid;
         }
         return domain.error();
     }
-    return grammar::text(first, static_cast<std::size_t>(it - first));
+    const auto length = static_cast<std::size_t>(it - first);
+    if (length > max_mailbox_length) {
+        it = first;
+        return urlg::error::invalid;
+    }
+    return grammar::text(first, length);
 }
 
 }  // namespace detail
@@ -227,7 +237,8 @@ namespace grammar {
  octets. The domain is @ref hostname_rule, A-labels included, whose error, idna's for an A-label,
  the rule returns as it is; an address literal is `[` and an IPv4 address `]`, or `[IPv6:` and an
  IPv6 address `]`, the tag in any case: RFC 5321's General-address-literal needs a tag registered
- with IANA, and `IPv6` is the only one. It stops where the domain or the literal does.
+ with IANA, and `IPv6` is the only one. The whole Mailbox is at most 254 octets, RFC 5321
+ 4.5.3.1.3's path of 256 less its angle brackets. It stops where the domain or the literal does.
 
  @see "Addresses", in the guide.
 */
@@ -241,8 +252,8 @@ struct email_rule_t {
      @param it The start of the input: past the match on success, else unchanged.
      @param end The end of the input.
      @return The text matched; `error::mismatch` when no local part starts at `it`;
-     `error::invalid` when the rest breaks the grammar; idna's error when idna refuses an A-label of
-     the domain.
+     `error::invalid` when the rest breaks the grammar or the Mailbox is longer than 254 octets;
+     idna's error when idna refuses an A-label of the domain.
     */
     [[nodiscard]] result<text> parse(char const*& it, char const* end) const noexcept;
 };

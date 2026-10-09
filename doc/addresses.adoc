@@ -43,9 +43,9 @@ envelope: a local part of atoms joined by dots or a quoted string, at most
 `[IPv6:2001:db8::1]`, the tag in any case. RFC 5321's other literals need a
 tag registered with IANA, and `IPv6` is the only one, so
 `[RFC-5322-domain-literal]` is invalid. RFC 5322's comments and display
-names are not part of a Mailbox. Only the local part and the host name are
-limited in length: RFC 5321 4.5.3.1.3's limit of 256 octets on a whole
-path, angle brackets included, is not checked.
+names are not part of a Mailbox. The whole Mailbox is at most 254 octets:
+RFC 5321 4.5.3.1.3 limits a path to 256 octets, its angle brackets
+included.
 
 A literal's addresses are judged by Boost.URL's rules, RFC 3986's IPv4
 address and RFC 4291's IPv6 address, rather than by RFC 5321 4.1.3's own

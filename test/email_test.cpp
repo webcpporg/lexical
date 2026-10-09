@@ -78,6 +78,34 @@ void local_parts_at_64_and_65_octets() {
     email("\"" + std::string(63, 'a') + "\"@example.com", false);
 }
 
+/** A Mailbox of 254 octets, RFC 5321 4.5.3.1.3's path of 256 less its angle brackets, and of 255.
+ */
+void mailboxes_at_254_and_255_octets() {
+    const std::string label63(63, 'a');
+    // 189 octets: two labels of 63 and one of 61, joined by two dots.
+    const std::string domain = label63 + "." + label63 + "." + std::string(61, 'a');
+    const std::string dot_string = std::string(64, 'a') + "@" + domain;
+    BOOST_TEST_EQ(dot_string.size(), 254U);
+    email(dot_string, true);
+    email(dot_string + "a", false);
+    const std::string quoted = "\"" + std::string(62, 'a') + "\"@" + domain;
+    BOOST_TEST_EQ(quoted.size(), 254U);
+    email(quoted, true);
+    email(quoted + "a", false);
+    // The longest address literal: a Mailbox with one is at most 117 octets, so never refused for
+    // its length.
+    const std::string literal =
+        std::string(64, 'a') + "@[IPv6:ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255]";
+    BOOST_TEST_EQ(literal.size(), 117U);
+    email(literal, true);
+    // Inside a grammar, the rule refuses the whole Mailbox rather than match a prefix of it.
+    const std::string longer = dot_string + "a>rest";
+    char const* it = longer.data();
+    const auto r = fg::email_rule.parse(it, longer.data() + longer.size());
+    BOOST_TEST(r.has_error() && r.error() == urlg::error::invalid);
+    BOOST_TEST(it == longer.data());
+}
+
 void domains_and_address_literals() {
     constexpr std::array<std::string_view, 8> valid{
         "joe.bloggs@[127.0.0.1]",     //
@@ -208,6 +236,7 @@ int main() {
     dot_strings();
     quoted_strings();
     local_parts_at_64_and_65_octets();
+    mailboxes_at_254_and_255_octets();
     domains_and_address_literals();
     address_literals_are_boost_urls_addresses();
     a_nul_after_the_domain();
