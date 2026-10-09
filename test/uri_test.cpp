@@ -5,9 +5,10 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // RFC 3986's URI and URI reference through Boost.URL: section 1.1.2's examples, the guard's inputs
-// refused (and the same with a scheme), alone and inside a larger grammar, the zone id verdict
-// Boost.URL gives, and a pin of Boost.URL's own reading of two of them, which fails the day a
-// Boost release fixes it, when the guard can leave.
+// refused (and the same with a scheme), alone and inside a larger grammar, a bracket in a query
+// and a number sign in a fragment refused, the zone id verdict Boost.URL gives, and
+// pins of Boost.URL's own reading of what the guard refuses, each failing the day a Boost release
+// fixes it, when its part of the guard can leave.
 
 #include <webcpp/formats/uri.hpp>
 
@@ -141,6 +142,50 @@ void brackets_only_around_an_ip_literal() {
     reference("?%5B", true);
 }
 
+void one_number_sign_before_the_fragment() {
+    // RFC 3986 3.5: fragment = *( pchar / "/" / "?" ). The first "#" starts the fragment, which
+    // holds no other but percent-encoded, as "%23". Boost.URL 1.92 takes "#" in a fragment.
+    constexpr std::array<std::string_view, 6> refused{
+        "http://a/#x#y",     //
+        "http://a/#x#",      //
+        "http://a/##",       //
+        "http://a/?q#x#y",   // after a query
+        "urn:a##",           //
+        "http://[::1]/#?#",  // after a "?" in the fragment
+    };
+    for (const std::string_view text : refused) {
+        uri(text, false);
+        reference(text, false);
+    }
+    constexpr std::array<std::string_view, 5> relative{
+        "#x#y",     //
+        "##",       //
+        "a#x#y",    //
+        "//h/#x#",  //
+        "?q##",     //
+    };
+    for (const std::string_view text : relative) {
+        reference(text, false);
+    }
+    uri("http://a/#x%23y", true);
+    uri("http://a/#%23", true);
+    uri("http://a/?q#x?y/z", true);
+    uri("http://a/?q%23#x%23", true);
+    reference("#x%23y", true);
+    reference("#", true);
+    reference("a?%23#%23", true);
+}
+
+void boost_url_still_takes_a_number_sign_in_a_fragment() {
+    // When this fails, Boost.URL refuses it itself, and the fragment guard may leave in a change of
+    // its own, with a changelog line; one_number_sign_before_the_fragment stays.
+    const auto u = boost::urls::parse_uri("http://a/#x#y");
+    if (BOOST_TEST(u.has_value())) {
+        BOOST_TEST_EQ(u->encoded_fragment(), "x#y");
+    }
+    BOOST_TEST(boost::urls::parse_uri_reference("#x#y").has_value());
+}
+
 void boost_url_still_takes_brackets_in_a_query() {
     // When this fails, Boost.URL refuses them itself, and the bracket guard may leave in a change
     // of its own, with a changelog line; brackets_only_around_an_ip_literal stays.
@@ -212,6 +257,15 @@ void the_rule_inside_a_grammar() {
     const auto u = fg::uri_rule.parse(in_uri, bracket.data() + bracket.size());
     BOOST_TEST(u.has_error() && u.error() == urlg::error::invalid);
     BOOST_TEST(in_uri == bracket.data());
+    // A second number sign, which Boost.URL's rule would hold in the fragment.
+    invalid_inside_a_grammar("http://a/#x#y rest");
+    invalid_inside_a_grammar("#x#y rest");
+    const std::string_view sign = "http://a/#x#y rest";
+    char const* in_sign = sign.data();
+    const auto f = fg::uri_rule.parse(in_sign, sign.data() + sign.size());
+    BOOST_TEST(f.has_error() && f.error() == urlg::error::invalid);
+    BOOST_TEST(in_sign == sign.data());
+    matches_inside_a_grammar("#x%23y rest", "#x%23y");
     const std::string_view after = "http://a@b@example.com/";
     char const* in_after = after.data();
     const auto a = fg::uri_rule.parse(in_after, after.data() + after.size());
@@ -260,6 +314,8 @@ int main() {
     uris_and_references();
     the_guard();
     brackets_only_around_an_ip_literal();
+    one_number_sign_before_the_fragment();
+    boost_url_still_takes_a_number_sign_in_a_fragment();
     boost_url_still_takes_brackets_in_a_query();
     boost_url_still_needs_the_guard();
     zone_ids_keep_boost_urls_verdict();

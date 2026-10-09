@@ -31,6 +31,14 @@ alike, which give `error::invalid` for it inside a larger grammar; an IP
 literal, `http://[::1]/`, and `%5B` in a query stay valid. This guard stays
 until a Boost release refuses those brackets itself.
 
+RFC 3986 3.5 gives a fragment `pchar`, `/` and `?` alone: the first `+#+`
+starts the fragment, and a second is held only percent-encoded, as `%23`.
+Boost.URL 1.92 adds `+#+` to its fragment characters on purpose, so
+`+http://a/#x#y+` is a URI for Boost.URL, whose fragment is `+x#y+`. formats
+refuses a `+#+` in a fragment, in the same four functions and their rules,
+which give `error::invalid` for it inside a larger grammar; `+#x%23y+` stays
+valid. This guard stays until a Boost release refuses it itself.
+
 `is_iri` and `is_iri_reference` check RFC 3987's IRI and IRI reference,
 which allow non-ASCII code points, by mapping the IRI to a URI as RFC 3987
 3.1 says and handing it to Boost.URL. Each non-ASCII code point must be
@@ -62,3 +70,4 @@ Boost.URL is a compiled library: a program that uses these formats links
 2026-10-09 with Boost 1.92 and wasi-sdk 34, built with b2's release flags
 (`-O3`, wasm exceptions) and stripped at link time, a wasm32-wasip2 program
 that calls `is_uri` is 85,625 bytes larger than an empty one.
+

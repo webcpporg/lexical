@@ -48,6 +48,16 @@ holds only what is specific to formats.
   Boost refuses them itself, and the guard then leaves in a change of its
   own, with a changelog line, while `brackets_only_around_an_ip_literal`
   stays.
+- **The fragment guard.** Boost.URL 1.92's fragment characters hold `#`
+  (`boost/url/rfc/detail/charsets.hpp`, `fragment_chars`, on purpose
+  upstream), which RFC 3986 3.5 refuses in a fragment.
+  `refuses_number_sign_in_fragment` refuses it in formats' `uri_rule` and
+  `uri_reference_rule`, wired beside the bracket guard, so every form
+  agrees; a `%23` stays valid. `uri_test`'s
+  `boost_url_still_takes_a_number_sign_in_a_fragment` fails the day the
+  configured Boost refuses it itself, and the guard then leaves in a change
+  of its own, with a changelog line, while
+  `one_number_sign_before_the_fragment` stays.
 - **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:

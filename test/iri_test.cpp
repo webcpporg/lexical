@@ -4,10 +4,10 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// RFC 3987's IRI and IRI reference, mapped to a URI that Boost.URL parses: 27 probes of the
-// corners the suite misses, the query and the fragment, the guard of a relative reference, the
-// inline buffer's edge, an ASCII IRI that never touches the resource, NUL, and where the rules
-// stop inside a larger grammar.
+// RFC 3987's IRI and IRI reference, mapped to a URI that Boost.URL parses: probes of the corners
+// the suite misses, the query and the fragment, one number sign before the fragment, the guard of
+// a relative reference, the inline buffer's edge, an ASCII IRI that never touches the resource,
+// NUL, and where the rules stop inside a larger grammar.
 
 #include <webcpp/formats/uri.hpp>
 
@@ -142,6 +142,21 @@ void the_query_is_before_the_first_number_sign() {
     reference("x#y?\xEE\x80\x80", false);
 }
 
+void one_number_sign_before_the_fragment() {
+    // RFC 3987's ifragment, as RFC 3986's fragment, holds no "#" but percent-encoded; Boost.URL
+    // takes one, and formats refuses it in the mapped URI.
+    iri("http://\xC3\xA9/#x#y", false);
+    iri("http://a/#\xC3\xA9#", false);
+    iri("http://a/?\xEE\x80\x80#x#\xC3\xA9", false);
+    iri("http://a/##", false);
+    reference("#\xC3\xA9#", false);
+    reference("\xC3\xA9#x#y", false);
+    reference("##", false);
+    iri("http://a/#\xC3\xA9%23\xC3\xA9", true);
+    iri("http://\xC3\xA9/#x?y/%23", true);
+    reference("#\xC3\xA9%23", true);
+}
+
 void a_relative_reference_keeps_its_guard() {
     // The guard of uri_reference_rule refuses a non-ASCII reference as it refuses an ASCII one.
     reference("//\xC3\xA9:abc/p", false);
@@ -243,6 +258,17 @@ void the_rules_inside_a_grammar() {
     const auto e = fg::iri_reference_rule.parse(empty, none.data() + none.size());
     BOOST_TEST(e.has_value() && e.unsafe_value().empty());
     BOOST_TEST(empty == none.data());
+    // A second number sign, refused whole by both rules.
+    const std::string_view sign = "http://a/#\xC3\xA9#x rest";
+    char const* in_sign = sign.data();
+    const auto s = fg::iri_rule.parse(in_sign, sign.data() + sign.size());
+    BOOST_TEST(s.has_error() && s.error() == urlg::error::invalid);
+    BOOST_TEST(in_sign == sign.data());
+    const std::string_view relative = "#\xC3\xA9#x rest";
+    char const* in_relative = relative.data();
+    const auto t = fg::iri_reference_rule.parse(in_relative, relative.data() + relative.size());
+    BOOST_TEST(t.has_error() && t.error() == urlg::error::invalid);
+    BOOST_TEST(in_relative == relative.data());
     // A run refused whole: the rule never matches its valid prefix "http://a/".
     const std::string_view broken = "http://a/%zz rest";
     char const* whole = broken.data();
@@ -305,6 +331,7 @@ int main() {
     non_ascii_only_where_rfc_3986_has_pct_encoded();
     every_bidirectional_formatting_character_is_refused();
     the_query_is_before_the_first_number_sign();
+    one_number_sign_before_the_fragment();
     a_relative_reference_keeps_its_guard();
     the_inline_buffer_and_the_resource();
     a_refused_iri_never_touches_the_resource();

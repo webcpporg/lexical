@@ -12,6 +12,9 @@
 // refuses_bracket_in_query covers Boost.URL 1.92's query characters, which hold "[" and "]"
 // (boost/url/rfc/detail/charsets.hpp, query_chars); it leaves with the first Boost release that
 // refuses them (test/uri_test.cpp, boost_url_still_takes_brackets_in_a_query).
+// refuses_number_sign_in_fragment covers its fragment characters, which hold "#" (the same file,
+// fragment_chars); it leaves with the first Boost release that refuses it (test/uri_test.cpp,
+// boost_url_still_takes_a_number_sign_in_a_fragment).
 
 #ifndef WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
 #define WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
@@ -58,6 +61,17 @@ inline bool refuses_authority_before_segment(boost::urls::url_view u, char const
 */
 inline bool refuses_bracket_in_query(boost::urls::url_view u) noexcept {
     return u.has_query() && u.encoded_query().find_first_of("[]") != boost::core::string_view::npos;
+}
+
+/**
+ True when a reference holds "#" in its fragment, which RFC 3986 3.5 refuses: the first "#" ends
+ what precedes the fragment, and the fragment holds pchar, "/" and "?" alone.
+
+ Tip: Boost.URL 1.92 adds "#" to its fragment characters on purpose (its commit "hash is fragment
+ char"), so a second "#" stays in the fragment there.
+*/
+inline bool refuses_number_sign_in_fragment(boost::urls::url_view u) noexcept {
+    return u.has_fragment() && u.encoded_fragment().contains('#');
 }
 
 }  // namespace webcpp::formats::detail
