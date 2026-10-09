@@ -28,6 +28,9 @@ webcpp.run date_time : date_time_test.cpp ;
 # The identifiers: UUIDs, and JSON Pointers, absolute and relative.
 webcpp.run uuid : uuid_test.cpp ;
 webcpp.run json_pointer : json_pointer_test.cpp ;
+# IP addresses, URIs and URI references, through Boost.URL.
+webcpp.run ip : ip_test.cpp ;
+webcpp.run uri : uri_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;

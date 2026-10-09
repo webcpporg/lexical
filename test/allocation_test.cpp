@@ -10,7 +10,9 @@
 // given.
 
 #include <webcpp/formats/date_time.hpp>
+#include <webcpp/formats/ip.hpp>
 #include <webcpp/formats/json_pointer.hpp>
+#include <webcpp/formats/uri.hpp>
 #include <webcpp/formats/uuid.hpp>
 
 #include <boost/config.hpp>
@@ -229,6 +231,19 @@ void identifiers_allocate_nothing() {
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
+/** IP addresses, URIs and URI references allocate nothing, a URI of 100,000 octets included. */
+void uris_allocate_nothing() {
+    std::string long_uri = "http://example.com/";
+    long_uri.append(100'000, 'a');
+    const std::size_t before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_ipv4("192.168.0.1"));
+    BOOST_TEST(webcpp::formats::is_ipv6("2001:DB8::8:800:200C:417A"));
+    BOOST_TEST(webcpp::formats::is_uri(long_uri));
+    BOOST_TEST(webcpp::formats::is_uri_reference("//example.com/p"));
+    BOOST_TEST(!webcpp::formats::is_uri_reference("//a@b@example.com/"));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+}
+
 }  // namespace
 
 int main() {
@@ -239,5 +254,6 @@ int main() {
 #endif
     dates_and_times_allocate_nothing();
     identifiers_allocate_nothing();
+    uris_allocate_nothing();
     return boost::report_errors();
 }

@@ -1,0 +1,15 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-addresses]
+== Addresses
+
+`is_ipv4` and `is_ipv6` are Boost.URL's own rules,
+`boost::urls::ipv4_address_rule` and `boost::urls::ipv6_address_rule`, which
+are also the rules a grammar of a program's own composes. An IPv4 address is
+RFC 2673's dotted quad, each part 0 to 255 without a leading zero (RFC
+3986's `dec-octet`), so `192.168.0.01` is invalid. An IPv6 address is one of
+RFC 4291 2.2's three text forms, without a zone id or a prefix length.

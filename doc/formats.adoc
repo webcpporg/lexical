@@ -26,6 +26,10 @@ include::dates.adoc[]
 
 include::identifiers.adoc[]
 
+include::addresses.adoc[]
+
+include::uris.adoc[]
+
 include::errors.adoc[]
 
 include::testing.adoc[]

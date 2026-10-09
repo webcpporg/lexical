@@ -65,12 +65,16 @@ constexpr std::array validators{
     mapping{"date", [](std::string_view s) { return formats::is_date(s); }},
     mapping{"date-time", [](std::string_view s) { return formats::is_date_time(s); }},
     mapping{"duration", [](std::string_view s) { return formats::is_duration(s); }},
+    mapping{"ipv4", [](std::string_view s) { return formats::is_ipv4(s); }},
+    mapping{"ipv6", [](std::string_view s) { return formats::is_ipv6(s); }},
     mapping{"json-pointer", [](std::string_view s) { return formats::is_json_pointer(s); }},
     mapping{
         "relative-json-pointer",
         [](std::string_view s) { return formats::is_relative_json_pointer(s); },
     },
     mapping{"time", [](std::string_view s) { return formats::is_time(s); }},
+    mapping{"uri", [](std::string_view s) { return formats::is_uri(s); }},
+    mapping{"uri-reference", [](std::string_view s) { return formats::is_uri_reference(s); }},
     mapping{"uuid", [](std::string_view s) { return formats::is_uuid(s); }},
 };
 
@@ -84,13 +88,9 @@ constexpr auto pending = std::to_array<std::string_view>({
     "hostname",
     "idn-email",
     "idn-hostname",
-    "ipv4",
-    "ipv6",
     "iri",
     "iri-reference",
     "regex",
-    "uri",
-    "uri-reference",
     "uri-template",
 });
 
