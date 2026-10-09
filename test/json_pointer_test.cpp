@@ -4,9 +4,10 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// RFC 6901's JSON Pointer and draft-handrews-relative-json-pointer-01's relative one: RFC 6901
-// section 5's twelve pointers, every escape, UTF-8 well-formed or refused, NUL as a character,
-// and the draft's section 5.1 examples.
+// RFC 6901's JSON Pointer and the relative one of draft-handrews-relative-json-pointer-01 and
+// draft-bhutton-relative-json-pointer-00: RFC 6901 section 5's twelve pointers, every escape,
+// UTF-8 well-formed or refused, NUL as a character, the drafts' section 5.1 examples, and the
+// index manipulation under each policy.
 
 #include <webcpp/formats/json_pointer.hpp>
 
@@ -32,12 +33,22 @@ void pointer(std::string_view text, bool valid) {
                   urlg::parse(text, fg::json_pointer_rule).has_value());
 }
 
-void relative(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_relative_json_pointer(text), valid)) {
-        std::cerr << "relative-json-pointer: \"" << text << "\"\n";
+void relative(std::string_view text, bool valid, formats::index_manipulation manipulation) {
+    if (!BOOST_TEST_EQ(formats::is_relative_json_pointer(text, manipulation), valid)) {
+        std::cerr << "relative-json-pointer, index manipulation "
+                  << (manipulation == formats::index_manipulation::allowed ? "allowed" : "refused")
+                  << ": \"" << text << "\"\n";
     }
+    BOOST_TEST_EQ(formats::is_relative_json_pointer(text, manipulation),
+                  urlg::parse(text, fg::relative_json_pointer_rule_t{manipulation}).has_value());
+}
+
+/** Checks `text` under both policies, the default included. */
+void relative(std::string_view text, bool valid) {
+    relative(text, valid, formats::index_manipulation::allowed);
+    relative(text, valid, formats::index_manipulation::refused);
     BOOST_TEST_EQ(formats::is_relative_json_pointer(text),
-                  urlg::parse(text, fg::relative_json_pointer_rule).has_value());
+                  formats::is_relative_json_pointer(text, formats::index_manipulation::allowed));
 }
 
 void rfc_6901_section_5() {
@@ -70,6 +81,8 @@ void escapes() {
     pointer("/~a", false);
     pointer("foo", false);
     pointer("#/foo", false);
+    pointer("/foo/-", true);
+    pointer("/~1.1", true);
 }
 
 void utf8_and_nul() {
@@ -84,7 +97,7 @@ void utf8_and_nul() {
 }
 
 void relative_pointers_of_section_5_1() {
-    constexpr std::array<std::string_view, 11> valid{
+    constexpr std::array<std::string_view, 12> valid{
         "0",                        // the section's examples, from "baz"
         "1/0",                      //
         "2/highly/nested/objects",  //
@@ -96,11 +109,12 @@ void relative_pointers_of_section_5_1() {
         "120/foo/bar",              // an integer of several digits
         "0//",                      // two empty reference tokens
         "99#",                      // nine, the last digit, first and after it
+        "100",                      // a zero after the first digit is a digit
     };
     for (const std::string_view text : valid) {
         relative(text, true);
     }
-    constexpr std::array<std::string_view, 12> invalid{
+    constexpr std::array<std::string_view, 11> invalid{
         "",              // no integer
         "/foo",          //
         "-1/foo",        // a sign
@@ -111,12 +125,66 @@ void relative_pointers_of_section_5_1() {
         "1#/foo",        //
         "0/~2",          // a json-pointer that breaks a rule
         "1foo",          // neither "#" nor "/" after the integer
-        "0+1",           // an index manipulation, of the draft's later revisions
         "\xD9\xA1/foo",  // ARABIC-INDIC DIGIT ONE, a digit outside ASCII
     };
     for (const std::string_view text : invalid) {
         relative(text, false);
     }
+}
+
+void index_manipulation_under_each_policy() {
+    // draft-bhutton-relative-json-pointer-00's index manipulation, a sign and a positive integer
+    // after the integer: valid when allowed (2020-12 and v1), never when refused (7 and 2019-09).
+    constexpr std::array<std::string_view, 6> manipulated{
+        "0-1",      // the draft's examples, from "baz"
+        "0-1#",     //
+        "0+1/foo",  //
+        "1-1#",     //
+        "2+10/a",   // an integer of several digits, a zero among them
+        "0+9",      // nine, the last digit
+    };
+    for (const std::string_view text : manipulated) {
+        relative(text, true, formats::index_manipulation::allowed);
+        relative(text, false, formats::index_manipulation::refused);
+        // Allowed is the default, of the function and of the rule object.
+        BOOST_TEST(formats::is_relative_json_pointer(text));
+        BOOST_TEST(urlg::parse(text, fg::relative_json_pointer_rule).has_value());
+    }
+    constexpr std::array<std::string_view, 10> broken{
+        "0+0",     // zero, which is no positive integer
+        "0-0#",    //
+        "0+01",    // a leading zero after the sign
+        "0-01#",   //
+        "0+",      // a sign without digits
+        "0-/foo",  //
+        "0+#",     // a sign followed by "#"
+        "0-#",     //
+        "0+-1",    // two signs
+        "0+1-1",   // two manipulations
+    };
+    for (const std::string_view text : broken) {
+        relative(text, false);
+    }
+}
+
+void where_the_manipulation_stops_the_rule() {
+    // Allowed, the manipulation is part of the pointer; refused, or broken, the rule stops after
+    // the integer, where the sign is, as an empty json-pointer may end it there.
+    const std::string_view text = "0+1/a";
+    char const* it = text.data();
+    const auto whole = fg::relative_json_pointer_rule.parse(it, text.data() + text.size());
+    BOOST_TEST(whole.has_value() && *whole == "0+1/a");
+    char const* at = text.data();
+    const auto refused =
+        fg::relative_json_pointer_rule_t{formats::index_manipulation::refused}.parse(
+            at, text.data() + text.size());
+    BOOST_TEST(refused.has_value() && *refused == "0");
+    BOOST_TEST(at == text.data() + 1);
+    const std::string_view sign = "0+#";
+    char const* from = sign.data();
+    const auto bare = fg::relative_json_pointer_rule.parse(from, sign.data() + sign.size());
+    BOOST_TEST(bare.has_value() && *bare == "0");
+    BOOST_TEST(from == sign.data() + 1);
 }
 
 void where_the_rules_stop() {
@@ -135,6 +203,29 @@ void where_the_rules_stop() {
     char const* from = none.data();
     const auto m = fg::relative_json_pointer_rule.parse(from, none.data() + none.size());
     BOOST_TEST(m.has_error() && m.error() == urlg::error::mismatch);
+}
+
+void what_the_rules_leave_where_they_fail_or_match_nothing() {
+    // The json-pointer rule matches empty text where no "/" starts the input, and never answers
+    // mismatch; the relative rule leaves its iterator where it was when its pointer breaks.
+    const std::string_view word = "foo";
+    char const* it = word.data();
+    const auto empty = fg::json_pointer_rule.parse(it, word.data() + word.size());
+    BOOST_TEST(empty.has_value() && empty->empty());
+    BOOST_TEST(it == word.data());
+    const std::string_view broken = "0/~2";
+    char const* at = broken.data();
+    const auto r = fg::relative_json_pointer_rule.parse(at, broken.data() + broken.size());
+    BOOST_TEST(r.has_error() && r.error() == urlg::error::invalid);
+    BOOST_TEST(at == broken.data());
+}
+
+void the_scanner_refuses_what_no_digit_starts() {
+    // The rule checks the first digit itself, to answer mismatch; the scanner guards it again.
+    constexpr auto allowed = formats::index_manipulation::allowed;
+    BOOST_TEST(!formats::detail::relative_json_pointer_length("", allowed).has_value());
+    BOOST_TEST(!formats::detail::relative_json_pointer_length("x", allowed).has_value());
+    BOOST_TEST(!formats::detail::relative_json_pointer_length("/0", allowed).has_value());
 }
 
 void a_view_that_ends_inside_an_escape() {
@@ -169,7 +260,11 @@ int main() {
     escapes();
     utf8_and_nul();
     relative_pointers_of_section_5_1();
+    index_manipulation_under_each_policy();
+    where_the_manipulation_stops_the_rule();
     where_the_rules_stop();
+    what_the_rules_leave_where_they_fail_or_match_nothing();
+    the_scanner_refuses_what_no_digit_starts();
     a_view_that_ends_inside_an_escape();
     a_bare_integer_is_a_relative_pointer();
     return boost::report_errors();

@@ -17,9 +17,14 @@ reference tokens each led by `/`, in which `~` is followed by `0` or `1`. A
 token holds any other code point, NUL included, so the string is decoded as
 UTF-8 and must be well-formed.
 
-`is_relative_json_pointer` checks the relative JSON Pointer of
-draft-handrews-relative-json-pointer-01, which drafts 2019-09, 2020-12 and v1
-of JSON Schema cite: a non-negative integer without a leading zero, then `#`
-or a JSON Pointer. The draft's later revisions add an index manipulation
-(`0+1`), which no published draft of JSON Schema asks for, and which is
-invalid here.
+`is_relative_json_pointer` checks a relative JSON Pointer: a non-negative
+integer without a leading zero, then `#` or a JSON Pointer. Draft 2020-12 and
+v1 of JSON Schema cite draft-bhutton-relative-json-pointer-00, which lets an
+index manipulation follow the integer, a sign and a positive integer (`0+1`,
+`1-1#`); drafts 7 and 2019-09 cite draft-handrews-relative-json-pointer-01,
+which has none. The function takes that choice as its second argument:
+`index_manipulation::allowed`, the default, for 2020-12 and v1, and
+`index_manipulation::refused` for 7 and 2019-09. The rule takes it as
+`relative_json_pointer_rule_t{index_manipulation::refused}`. A sign that no
+positive integer follows (`0+`, `0+0`, `0-01`) is no manipulation, under
+either choice.

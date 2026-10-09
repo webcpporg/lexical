@@ -18,6 +18,7 @@
 #include <webcpp/formats/detail/utf8.hpp>
 #include <webcpp/formats/grammar.hpp>
 
+#include <boost/url/grammar/digit_chars.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>
 
@@ -26,6 +27,18 @@
 #include <string_view>
 
 namespace webcpp::formats {
+
+/**
+ Whether a relative JSON Pointer may move its array index with a sign and a positive integer.
+
+ @see "Identifiers", in the guide.
+*/
+enum class index_manipulation {
+    /** An index manipulation is valid, as in draft-bhutton-00, which 2020-12 and v1 cite. */
+    allowed,
+    /** An index manipulation is refused, as in draft-handrews-01, which 7 and 2019-09 cite. */
+    refused,
+};
 
 namespace detail {
 
@@ -56,20 +69,30 @@ constexpr std::optional<std::size_t> json_pointer_length(std::string_view s) noe
     return i;
 }
 
+/** Where the run of ASCII digits that starts at `s[i]` ends. */
+constexpr std::size_t digits_end(std::string_view s, std::size_t i) noexcept {
+    while (i < s.size() && urlg::digit_chars(s[i])) {
+        ++i;
+    }
+    return i;
+}
+
 /**
  The length of the relative JSON pointer at the start of `s`: a non-negative integer without a
- leading zero, then "#" or a json-pointer; nothing when no digit starts `s` or the pointer breaks
- a rule.
+ leading zero, an index manipulation where `manipulation` allows it, then "#" or a json-pointer;
+ nothing when no digit starts `s` or the json-pointer breaks a rule. The rule checks the first
+ digit before it calls this, to answer mismatch; this checks it again, as its own guard.
 */
-constexpr std::optional<std::size_t> relative_json_pointer_length(std::string_view s) noexcept {
-    if (s.empty() || s[0] < '0' || s[0] > '9') {
+constexpr std::optional<std::size_t> relative_json_pointer_length(
+    std::string_view s, index_manipulation manipulation) noexcept {
+    if (s.empty() || !urlg::digit_chars(s[0])) {
         return std::nullopt;
     }
-    std::size_t i = 1;
-    if (s[0] != '0') {
-        while (i < s.size() && s[i] >= '0' && s[i] <= '9') {
-            ++i;
-        }
+    std::size_t i = s[0] == '0' ? 1 : digits_end(s, 1);
+    // A sign without a positive integer after it is no manipulation: the pointer ends before it.
+    if (manipulation == index_manipulation::allowed && i + 1 < s.size() &&
+        (s[i] == '+' || s[i] == '-') && s[i + 1] != '0' && urlg::digit_chars(s[i + 1])) {
+        i = digits_end(s, i + 2);
     }
     if (i < s.size() && s[i] == '#') {
         return i + 1;
@@ -92,8 +115,9 @@ namespace grammar {
 
  A token holds any code point but `/` and `~`, NUL included, and `~0` or `~1`; the input is
  decoded as UTF-8 and must be well-formed. The empty pointer is valid, so the rule matches empty
- text where no `/` starts the input, and never answers mismatch. Inside a larger grammar it runs
- to the end of the input, since a token holds every character the grammar could continue with.
+ text where no `/` starts the input, and never answers mismatch. Once a `/` starts it, inside a
+ larger grammar it runs to the end of the input, since a token holds every character the grammar
+ could continue with.
 
  @see "Identifiers", in the guide.
 */
@@ -113,17 +137,24 @@ struct json_pointer_rule_t {
 };
 
 /**
- The rule of draft-handrews-relative-json-pointer-01 section 3's relative-json-pointer: a
- non-negative integer, then `#` or a json-pointer.
+ The rule of the relative-json-pointer of draft-bhutton-relative-json-pointer-00 section 3 and
+ draft-handrews-relative-json-pointer-01 section 3: a non-negative integer, an optional index
+ manipulation, then `#` or a json-pointer.
 
- The integer is `0` or starts with 1 to 9, so `01` is refused; no index manipulation (`0+1`), as
- drafts 2019-09 to v1 cite this draft. It stops after the `#`, or where its json-pointer does.
+ The integer is `0` or starts with 1 to 9, so `01` is refused. The index manipulation, a sign and
+ a positive integer (`0+1`, `1-1#`), is draft-bhutton-00's, which draft 2020-12 and v1 cite; drafts
+ 7 and 2019-09 cite draft-handrews-01, which has none, so @ref index_manipulation::refused
+ refuses it. It stops after the `#`, or where its json-pointer does; where a sign is not a valid
+ manipulation, it stops before the sign.
 
  @see "Identifiers", in the guide.
 */
 struct relative_json_pointer_rule_t {
     /** The rule yields the text it matched. */
     using value_type = text;
+
+    /** Whether an index manipulation may follow the integer. */
+    index_manipulation manipulation = index_manipulation::allowed;
 
     /**
      Matches a relative-json-pointer at `it`.
@@ -139,7 +170,10 @@ struct relative_json_pointer_rule_t {
 /** The rule of RFC 6901's json-pointer. */
 inline constexpr json_pointer_rule_t json_pointer_rule{};
 
-/** The rule of the relative JSON pointer. */
+/**
+ The rule of the relative JSON pointer, index manipulation allowed;
+ `relative_json_pointer_rule_t{index_manipulation::refused}` refuses it.
+*/
 inline constexpr relative_json_pointer_rule_t relative_json_pointer_rule{};
 
 // parse reads no member, yet stays a const member: Boost.URL's Rule concept calls it on the rule.
@@ -155,15 +189,13 @@ inline result<text> json_pointer_rule_t::parse(char const*& it, char const* end)
     return text(first, *length);
 }
 
-// parse reads no member, yet stays a const member: Boost.URL's Rule concept calls it on the rule.
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 inline result<text> relative_json_pointer_rule_t::parse(char const*& it,
                                                         char const* end) const noexcept {
-    if (it == end || *it < '0' || *it > '9') {
+    if (it == end || !detail::urlg::digit_chars(*it)) {
         return detail::urlg::error::mismatch;
     }
     const std::optional<std::size_t> length = detail::relative_json_pointer_length(
-        std::string_view(it, static_cast<std::size_t>(end - it)));
+        std::string_view(it, static_cast<std::size_t>(end - it)), manipulation);
     if (!length) {
         return detail::urlg::error::invalid;
     }
@@ -189,11 +221,15 @@ inline result<text> relative_json_pointer_rule_t::parse(char const*& it,
  Whether `s` is a relative JSON Pointer, JSON Schema's `relative-json-pointer`.
 
  @param s Any byte string.
- @return `parse(s, grammar::relative_json_pointer_rule).has_value()`.
+ @param manipulation Whether an index manipulation (`0+1`) may be valid:
+ @ref index_manipulation::allowed for draft 2020-12 and v1,
+ @ref index_manipulation::refused for drafts 7 and 2019-09.
+ @return `parse(s, grammar::relative_json_pointer_rule_t{manipulation}).has_value()`.
  @see "Identifiers", in the guide.
 */
-[[nodiscard]] inline bool is_relative_json_pointer(std::string_view s) noexcept {
-    return detail::urlg::parse(s, grammar::relative_json_pointer_rule).has_value();
+[[nodiscard]] inline bool is_relative_json_pointer(
+    std::string_view s, index_manipulation manipulation = index_manipulation::allowed) noexcept {
+    return detail::urlg::parse(s, grammar::relative_json_pointer_rule_t{manipulation}).has_value();
 }
 
 }  // namespace webcpp::formats

@@ -40,6 +40,8 @@ void canonical_forms_in_any_case() {
     check("00000000-0000-0000-0000-000000000000", true);
     // The version and variant nibbles are not checked: the suite accepts version 15.
     check("99c17cbb-656f-f64a-940f-1a4568f03487", true);
+    // Nor the variant: f is none of RFC 9562's.
+    check("2eb8aa08-aa98-11ea-f4aa-73b441d16380", true);
 }
 
 void every_wrong_length_and_dash() {
