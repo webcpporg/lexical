@@ -71,13 +71,15 @@ holds only what is specific to formats.
   as it never loosens Boost.URL: an `IPvFuture` led by an uppercase `V`
   (RFC 5234 makes the ABNF's `"v"` case-insensitive) is refused.
   `uri_test`'s `ipvfuture_keeps_boost_urls_verdict` fails the day Boost
-  takes it, and the page's "Known deviations" then loses it.
+  takes it: its two verdicts and `iri_test`'s on `http://[V1.x]/` then flip
+  to valid, RFC 3986's, and this bullet and the page's "Known deviations"
+  lose it.
 - **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:
-  a `%XX` is valid exactly where RFC 3987 allows `ucschar`, but in an IP
-  literal, ASCII alone, where formats refuses a non-ASCII code point itself,
-  before anything is mapped. The mapped copy
+  a `%XX` is valid exactly where RFC 3987 allows `ucschar`. formats still
+  refuses a non-ASCII code point in an IP literal before mapping, which keeps
+  that verdict independent of the zone guard. The mapped copy
   is the one allocation of formats' validators but `is_regex`'s, and only
   beyond 1,024 mapped octets; an ASCII IRI is never copied.
 - **Boost.URL's compiled part.** `/webcpp//boost_url`, which `build.jam`

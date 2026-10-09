@@ -228,6 +228,11 @@ void no_zone_identifier() {
     uri("http://[::ffff:1.2.3.4]/%25", true);  // "%25" outside the IP literal
     uri("http://%25@h/?%25#%25", true);
     reference("//[::1]/%25", true);
+    // A percent sign elsewhere in an authority whose host is an IPv6 address.
+    uri("http://%25@[::1]:80/", true);
+    uri("http://u%41:p%25@[::1]/p?%25", true);
+    reference("//a%25b@[fe80::1]/%25", true);
+    reference("//a%25b@[fe80::1]:8080?q%25", true);
 }
 
 void boost_url_still_takes_a_zone_identifier() {
@@ -243,8 +248,9 @@ void boost_url_still_takes_a_zone_identifier() {
 void ipvfuture_keeps_boost_urls_verdict() {
     // RFC 3986 3.2.2's IPvFuture starts with "v", which RFC 5234 2.3 makes case-insensitive, as
     // every quoted string of ABNF; Boost.URL 1.92 refuses "V" (the page's "Known deviations"), and
-    // formats does not loosen Boost.URL. When this fails, Boost.URL takes "V" itself, and the
-    // deviation leaves the page.
+    // formats does not loosen Boost.URL. When this fails, Boost.URL takes "V" itself: the two false
+    // verdicts become true, RFC 3986's, as does iri_test's on "http://[V1.x]/", and the deviation
+    // leaves the page and AGENTS.md.
     uri("http://[V1.x]/", false);
     reference("//[V1.x]/", false);
     uri("http://[v1.x]/", true);

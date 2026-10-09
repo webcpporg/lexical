@@ -15,9 +15,9 @@
 // refuses_number_sign_in_fragment covers its fragment characters, which hold "#" (the same file,
 // fragment_chars); it leaves with the first Boost release that refuses it (test/uri_test.cpp,
 // boost_url_still_takes_a_number_sign_in_a_fragment). refuses_zone_identifier covers its IP
-// literal, which takes RFC 6874's zone identifier (boost/url/rfc/detail/ipv6_addrz_rule.hpp); it
-// leaves with the first Boost release that refuses one (test/uri_test.cpp,
-// boost_url_still_takes_a_zone_identifier).
+// literal, which takes RFC 6874's zone identifier
+// (boost/url/rfc/detail/impl/ipv6_addrz_rule.hpp); it leaves with the first Boost release that
+// refuses one (test/uri_test.cpp, boost_url_still_takes_a_zone_identifier).
 
 #ifndef WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
 #define WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
