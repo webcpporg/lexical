@@ -64,8 +64,11 @@ constexpr bool is_leap_year(int year) noexcept {
     return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
 }
 
-/** The days of `month` (1 to 12) in `year`, Gregorian (RFC 3339 5.7). */
+/** The days of `month` in `year`, Gregorian (RFC 3339 5.7), and 0 for a month not 1 to 12. */
 constexpr int days_in_month(int year, int month) noexcept {
+    if (month < 1 || month > 12) {
+        return 0;
+    }
     constexpr std::array<int, 12> days{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     if (month == 2 && is_leap_year(year)) {
         return 29;
@@ -91,9 +94,6 @@ constexpr bool is_valid_time(int hour, int minute, int second, int offset,
     return utc == (23 * 60) + 59;
 }
 
-/** Two ASCII digits. */
-inline constexpr auto two_digits_rule = exactly<2>(urlg::digit_chars);
-
 /** RFC 3339 5.6 full-date's shape, 4DIGIT "-" 2DIGIT "-" 2DIGIT: its year, month and day. */
 inline constexpr auto full_date_shape =
     urlg::tuple_rule(exactly<4>(urlg::digit_chars), urlg::squelch(urlg::delim_rule('-')),
@@ -115,30 +115,33 @@ inline constexpr auto numeric_offset_shape =
                      urlg::squelch(urlg::delim_rule(':')), two_digits_rule);
 
 /**
- Reads RFC 3339's time-offset at `it` as minutes east of UTC; false, `it` unchanged, when
- none.
+ Reads RFC 3339's time-offset at `it` as minutes east of UTC, and moves `it` past it.
+
+ Tip: a rule's errors, with `it` unchanged: mismatch when no `Z`, `+` or `-` starts it, invalid
+ when one did and the hours or the minutes broke their shape or range.
 */
-inline bool parse_time_offset(char const*& it, char const* end, int& minutes) noexcept {
-    if (it != end && (*it == 'Z' || *it == 'z')) {
+inline grammar::result<int> parse_time_offset(char const*& it, char const* end) noexcept {
+    if (it == end || (*it != 'Z' && *it != 'z' && *it != '+' && *it != '-')) {
+        return urlg::error::mismatch;
+    }
+    if (*it == 'Z' || *it == 'z') {
         ++it;
-        minutes = 0;
-        return true;
+        return 0;
     }
     char const* const first = it;
     const auto offset = urlg::parse(it, end, numeric_offset_shape);
     if (!offset) {
         it = first;
-        return false;
+        return urlg::error::invalid;
     }
     const auto& [sign, hours_text, minutes_text] = offset.unsafe_value();
     const int hours = digits_value(hours_text);
-    const int mins = digits_value(minutes_text);
-    if (hours > 23 || mins > 59) {
+    const int minutes = digits_value(minutes_text);
+    if (hours > 23 || minutes > 59) {
         it = first;
-        return false;
+        return urlg::error::invalid;
     }
-    minutes = (sign == "-" ? -1 : 1) * ((hours * 60) + mins);
-    return true;
+    return (sign == "-" ? -1 : 1) * ((hours * 60) + minutes);
 }
 
 /** One designator of a duration, in either case (RFC 5234 2.3), matched and dropped. */
@@ -338,14 +341,18 @@ inline result<text> time_rule_t::parse(char const*& it, char const* end) const n
     }
     char const* const first = it;
     const auto time = detail::urlg::parse(it, end, detail::partial_time_shape);
-    int offset = 0;
-    if (!time || !detail::parse_time_offset(it, end, offset)) {
+    if (!time) {
+        it = first;
+        return detail::urlg::error::invalid;
+    }
+    const auto offset = detail::parse_time_offset(it, end);
+    if (!offset) {
         it = first;
         return detail::urlg::error::invalid;
     }
     const auto& [hour, minute, second] = time.unsafe_value();
     if (!detail::is_valid_time(detail::digits_value(hour), detail::digits_value(minute),
-                               detail::digits_value(second), offset, leap)) {
+                               detail::digits_value(second), offset.unsafe_value(), leap)) {
         it = first;
         return detail::urlg::error::invalid;
     }

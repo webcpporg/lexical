@@ -14,6 +14,7 @@
 #include <webcpp/formats/grammar.hpp>
 
 #include <boost/url/grammar/ci_string.hpp>
+#include <boost/url/grammar/digit_chars.hpp>
 #include <boost/url/grammar/error.hpp>
 
 #include <cstddef>
@@ -51,6 +52,9 @@ template <std::size_t N, class CharSet>
 constexpr exactly_rule_t<N, CharSet> exactly(const CharSet& chars) noexcept {
     return exactly_rule_t<N, CharSet>{chars};
 }
+
+/** Two ASCII digits: a month, a day, an hour, a minute or a second. */
+inline constexpr auto two_digits_rule = exactly<2>(boost::urls::grammar::digit_chars);
 
 /** A rule that matches a literal with its ASCII letters in either case, and yields the text. */
 class ci_literal_rule {

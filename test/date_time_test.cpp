@@ -18,6 +18,7 @@
 
 #include <array>
 #include <cstddef>
+#include <initializer_list>
 #include <iostream>
 #include <span>
 #include <string>
@@ -76,6 +77,9 @@ void every_month_ends_where_it_should() {
     for (const std::string_view refused : {"2021-00-01", "2021-13-01", "2021-01-00"}) {
         BOOST_TEST(!formats::is_date(refused));
     }
+    // A month that does not exist has no days.
+    BOOST_TEST_EQ(webcpp::formats::detail::days_in_month(2021, 0), 0);
+    BOOST_TEST_EQ(webcpp::formats::detail::days_in_month(2021, 13), 0);
 }
 
 void a_date_has_four_digits_then_two_and_two() {
@@ -186,6 +190,7 @@ void durations_of_appendix_a() {
         sample{.text = "P0D", .valid = true},             // zero
         sample{.text = "P", .valid = false},              // nothing after P or T
         sample{.text = "PT", .valid = false},             //
+        sample{.text = "P1DT", .valid = false},           //
         sample{.text = "P1H", .valid = false},            // a designator on the wrong side of T
         sample{.text = "PT1D", .valid = false},           //
         sample{.text = "P1Y1W", .valid = false},          // weeks with anything else
@@ -196,6 +201,7 @@ void durations_of_appendix_a() {
         sample{.text = "P-1D", .valid = false},           //
         sample{.text = "-P1D", .valid = false},           //
         sample{.text = "P1D1Y", .valid = false},          // out of order
+        sample{.text = "PT1S1M", .valid = false},         //
     };
     const auto is = [](std::string_view s) { return formats::is_duration(s); };
     check("durations", durations, is, fg::duration_rule);
@@ -264,6 +270,14 @@ void rules_stop_where_their_grammar_does() {
     }
     const auto leftover = urlg::parse("2020-01-01x", fg::date_rule);
     BOOST_TEST(leftover.has_error() && leftover.error() == urlg::error::leftover);
+    // Appendix A keeps years, months and days contiguous: of P1Y2D, the rule takes P1Y alone.
+    const std::string_view skipped = "P1Y2D";
+    char const* it = skipped.data();
+    const auto years = fg::duration_rule.parse(it, skipped.data() + skipped.size());
+    if (BOOST_TEST(years.has_value())) {
+        BOOST_TEST_EQ(*years, "P1Y");
+    }
+    BOOST_TEST(it == skipped.data() + 3);
 }
 
 }  // namespace
