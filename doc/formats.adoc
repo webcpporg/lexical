@@ -15,9 +15,10 @@
 formats is a header-only library of validators for the string formats of
 JSON Schema, in {cpp}20, one of the libraries of
 https://github.com/webcpporg/webcpp[webcpp]. Each format is a function that
-takes a `std::string_view` and answers `bool`, allocating nothing, and a
-Boost.URL grammar rule, which composes with Boost.URL's combinators into
-grammars of a program's own.
+takes a `std::string_view` and answers `bool`, and a Boost.URL grammar rule,
+which composes with Boost.URL's combinators into grammars of a program's own.
+Nothing allocates but an IRI too long for its inline buffer and a regular
+expression, and those only through a `std::pmr::memory_resource`.
 
 include::introduction.adoc[]
 

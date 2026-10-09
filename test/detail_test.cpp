@@ -32,13 +32,15 @@ struct decoded {
 };
 
 void well_formed_sequences_decode() {
-    // RFC 3629 section 4's table, at each boundary of each length.
-    constexpr std::array<decoded, 8> table{
+    // RFC 3629 section 4's table, at each boundary of each length, and around the surrogates.
+    constexpr std::array<decoded, 10> table{
         decoded{.bytes = std::string_view("\x00", 1), .cp = 0x0},
         decoded{.bytes = "\x7F", .cp = 0x7F},
         decoded{.bytes = "\xC2\x80", .cp = 0x80},
         decoded{.bytes = "\xDF\xBF", .cp = 0x7FF},
         decoded{.bytes = "\xE0\xA0\x80", .cp = 0x800},
+        decoded{.bytes = "\xED\x9F\xBF", .cp = 0xD7FF},
+        decoded{.bytes = "\xEE\x80\x80", .cp = 0xE000},
         decoded{.bytes = "\xEF\xBF\xBF", .cp = 0xFFFF},
         decoded{.bytes = "\xF0\x90\x80\x80", .cp = 0x10000},
         decoded{.bytes = "\xF4\x8F\xBF\xBF", .cp = 0x10FFFF},
@@ -54,11 +56,13 @@ void well_formed_sequences_decode() {
 
 void ill_formed_sequences_are_refused() {
     // Each leaves the index and the code point as they were.
-    constexpr std::array<std::string_view, 16> refused{
+    constexpr std::array<std::string_view, 21> refused{
         "\xC0\xAF",          // overlong, of each length
         "\xC1\xBF",          //
         "\xE0\x80\xAF",      //
         "\xF0\x80\x80\xAF",  //
+        "\xE0\x9F\xBF",      // overlong by one: U+07FF in three bytes, U+FFFF in four
+        "\xF0\x8F\xBF\xBF",  //
         "\xED\xA0\x80",      // the first and the last surrogate
         "\xED\xBF\xBF",      //
         "\xF4\x90\x80\x80",  // above U+10FFFF
@@ -71,6 +75,9 @@ void ill_formed_sequences_are_refused() {
         "\xFE",              // bytes no sequence starts with
         "\xFF",              //
         "\xC3\x28",          // a lead byte before an ASCII one
+        "\xC3\xC3",          // a byte above 0xBF where a continuation byte must be, at each place
+        "\xE2\x82\xE2",      //
+        "\xF4\x8F\xBF\xC0",  //
     };
     for (const std::string_view bytes : refused) {
         std::size_t i = 0;
@@ -88,7 +95,7 @@ void a_sequence_decodes_where_the_index_says() {
     std::size_t i = 1;
     char32_t cp = 0;
     BOOST_TEST(detail::decode_utf8(text, i, cp));
-    BOOST_TEST(cp == U'é');
+    BOOST_TEST(cp == U'\u00E9');
     BOOST_TEST_EQ(i, 3U);
     std::size_t past = text.size();
     BOOST_TEST(!detail::decode_utf8(text, past, cp));

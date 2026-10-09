@@ -11,9 +11,14 @@
 
 #include <boost/config.hpp>
 #include <boost/core/lightweight_test.hpp>
+#include <boost/throw_exception.hpp>
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <memory_resource>
 #include <new>
 #include <string>
@@ -41,14 +46,16 @@ std::size_t global_allocations() {
 // The replacements of the global operator new and operator delete, for this program alone. The
 // standard library declares them with parameter names reserved to the implementation, which a
 // program may not use, hence the exemption on each. None is ever inlined: GCC, seeing the malloc
-// or the free inside one, would pair it with the other's call and warn of a mismatch.
+// or the free inside one, would pair it with the other's call and warn of a mismatch. Out of
+// memory, each raises std::bad_alloc, as the standard asks of a replacement, through
+// boost::throw_exception, which aborts in a build without exceptions.
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 BOOST_NOINLINE void* operator new(std::size_t size) {
     ++global_new_calls;
     void* memory = std::malloc(size == 0 ? 1 : size);
     if (memory == nullptr) {
-        std::abort();
+        boost::throw_exception(std::bad_alloc());
     }
     return memory;
 }
@@ -66,16 +73,23 @@ BOOST_NOINLINE void operator delete(void* memory, std::size_t /*size*/) noexcept
 namespace {
 
 /**
- Memory of `size` bytes aligned to `alignment`, from aligned_alloc, whose size must be a multiple
- of the alignment, or from _aligned_malloc under _MSC_VER, whose UCRT has no aligned_alloc.
+ Memory of `size` bytes aligned to `alignment`, or null: from aligned_alloc, with the alignment
+ raised to a pointer's size and the size rounded up to a multiple of it, or from _aligned_malloc
+ under _MSC_VER, whose UCRT has no aligned_alloc.
+
+ Tip: macOS's aligned_alloc refuses an alignment below a pointer's size, which libstdc++'s
+ new_delete_resource asks for, and libstdc++'s own aligned operator new raises it the same way.
 */
 void* aligned_memory(std::size_t size, std::size_t alignment) {
-    const std::size_t rounded =
-        size == 0 ? alignment : (size + alignment - 1) / alignment * alignment;
+    const std::size_t raised = std::max(alignment, sizeof(void*));
+    if (size > std::numeric_limits<std::size_t>::max() - raised) {
+        return nullptr;
+    }
+    const std::size_t rounded = size == 0 ? raised : (size + raised - 1) / raised * raised;
 #ifdef _MSC_VER
-    return _aligned_malloc(rounded, alignment);
+    return _aligned_malloc(rounded, raised);
 #else
-    return std::aligned_alloc(alignment, rounded);
+    return std::aligned_alloc(raised, rounded);
 #endif
 }
 
@@ -98,7 +112,7 @@ BOOST_NOINLINE void* operator new(std::size_t size, std::align_val_t alignment) 
     ++global_new_calls;
     void* memory = aligned_memory(size, static_cast<std::size_t>(alignment));
     if (memory == nullptr) {
-        std::abort();
+        boost::throw_exception(std::bad_alloc());
     }
     return memory;
 }
@@ -133,9 +147,58 @@ void the_instrument_counts() {
     BOOST_TEST_EQ(global_allocations() - again, 1U);
 }
 
+/**
+ Every power-of-two alignment from 1 to 64 reaches a replaced operator new once, through the
+ resource, and comes back aligned.
+
+ Tip: libstdc++'s new_delete_resource takes the aligned form for every alignment, and libc++ for
+ one past the default alignment, so each lane reaches both replacements, below the alignment
+ aligned_alloc accepts too.
+*/
+void every_alignment_is_counted_and_honoured() {
+    constexpr std::array<std::size_t, 7> alignments{1, 2, 4, 8, 16, 32, 64};
+    for (const std::size_t alignment : alignments) {
+        webcpp::test::counting_resource resource;
+        const std::size_t before = global_allocations();
+        void* memory = resource.allocate(24, alignment);
+        BOOST_TEST_EQ(reinterpret_cast<std::uintptr_t>(memory) % alignment, 0U);
+        resource.deallocate(memory, 24, alignment);
+        BOOST_TEST_EQ(global_allocations() - before, 1U);
+    }
+}
+
+#ifndef BOOST_NO_EXCEPTIONS
+/**
+ Each replaced operator new throws std::bad_alloc when it has no memory to give, as the standard
+ asks of a replacement: the aligned form also where rounding the size up would overflow.
+*/
+void exhaustion_throws_bad_alloc() {
+    // Read at run time: a constant size would let GCC warn that it exceeds any object's.
+    const volatile std::size_t impossible = std::numeric_limits<std::size_t>::max();
+    bool plain = false;
+    try {
+        ::operator delete(::operator new(impossible));
+    } catch (const std::bad_alloc&) {
+        plain = true;
+    }
+    BOOST_TEST(plain);
+    bool aligned = false;
+    try {
+        ::operator delete(::operator new(impossible, std::align_val_t{64}), std::align_val_t{64});
+    } catch (const std::bad_alloc&) {
+        aligned = true;
+    }
+    BOOST_TEST(aligned);
+}
+#endif
+
 }  // namespace
 
 int main() {
     the_instrument_counts();
+    every_alignment_is_counted_and_honoured();
+#ifndef BOOST_NO_EXCEPTIONS
+    exhaustion_throws_bad_alloc();
+#endif
     return boost::report_errors();
 }

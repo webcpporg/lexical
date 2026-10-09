@@ -3,8 +3,10 @@
 formats is a header-only C++20 library of validators and Boost.URL grammar
 rules for the string formats of JSON Schema, one of the libraries of
 [webcpp](https://github.com/webcpporg/webcpp). Each format is a function that
-takes a `std::string_view` and answers `bool`, allocating nothing, and a rule
-of `webcpp::formats::grammar` that composes with Boost.URL's combinators.
+takes a `std::string_view` and answers `bool`, and a rule of
+`webcpp::formats::grammar` that composes with Boost.URL's combinators. Nothing
+allocates but an IRI too long for its inline buffer and a regular expression,
+and those only through a `std::pmr::memory_resource`.
 
 formats is built and tested inside a checkout of the superproject:
 
