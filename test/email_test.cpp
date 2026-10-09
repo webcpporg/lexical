@@ -64,6 +64,8 @@ void quoted_strings() {
     email("\"a\tb\"@iana.org", false);
     // UTF8-non-ascii is qtextSMTP only in idn-email (RFC 6531 3.3).
     email("\"\xC3\xA9\"@iana.org", false);
+    // NUL is no qtextSMTP.
+    email(std::string_view("\"a\0b\"@iana.org", 14), false);
     // quoted-pairSMTP is a backslash and %d32-126: no control after it.
     email("\"a\\\tb\"@iana.org", false);
     email("\"a\\\x7F\"@iana.org", false);
@@ -114,6 +116,27 @@ void domains_and_address_literals() {
     for (const std::string_view text : invalid) {
         email(text, false);
     }
+}
+
+/**
+ An address literal's addresses are Boost.URL's IPv4 and IPv6 rules, not RFC 5321 4.1.3's own
+ Snum and IPv6-comp.
+*/
+void address_literals_are_boost_urls_addresses() {
+    // RFC 5321's Snum is 1*3DIGIT; RFC 3986's dec-octet refuses a leading zero.
+    email("a@[001.2.3.4]", false);
+    // RFC 5321's IPv6-comp leaves at least two groups to its "::"; RFC 4291 lets it stand for one.
+    email("a@[IPv6:1:2:3:4:5:6::8]", true);
+    email("a@[IPv6:1:2:3:4:5:6:7::]", true);
+}
+
+/** A NUL after the domain is input the Mailbox leaves over. */
+void a_nul_after_the_domain() {
+    email(std::string_view("a@iana.org\0", 11), false);
+    const std::string_view text("a@iana.org\0", 11);
+    char const* it = text.data();
+    const auto r = fg::email_rule.parse(it, text.data() + text.size());
+    BOOST_TEST(r.has_value() && *r == "a@iana.org");
 }
 
 void the_rule_stops_and_reports() {
@@ -186,6 +209,8 @@ int main() {
     quoted_strings();
     local_parts_at_64_and_65_octets();
     domains_and_address_literals();
+    address_literals_are_boost_urls_addresses();
+    a_nul_after_the_domain();
     the_rule_stops_and_reports();
     the_local_part_rule();
     a_refusal_leaves_the_iterator();

@@ -96,9 +96,9 @@ void a_labels_in_either_case() {
     hostname("xn--X", false);
     hostname("XN--aa---o47jg78q", false);
     hostname("xn--hello-txk", false);
-    // A host name's labels are judged one by one: RFC 5893's Bidi rule across the labels
-    // of a domain is idn-hostname's, so this is a host name and its U-label form, 0a. and
-    // HEBREW LETTER ALEF, is no idn-hostname.
+    // formats judges each A-label alone, a decision of its own, so RFC 5893's Bidi rule across
+    // the labels of a name is checked only by idn-hostname: this is a host name, and its U-label
+    // form, 0a. and HEBREW LETTER ALEF, is no idn-hostname.
     hostname("0a.xn--4db", true);
 }
 
@@ -134,6 +134,20 @@ void an_a_label_meets_the_bidi_rule_alone() {
     for (const std::string_view text : refused) {
         hostname(text, false);
     }
+}
+
+/** A-labels at a label's 63 octets, in either case, and one octet more refused. */
+void a_labels_at_63_and_64_octets() {
+    // 55 times a, then LATIN SMALL LETTER A WITH DIAERESIS: an A-label of 63 octets.
+    const std::string label63 = "xn--" + std::string(55, 'a') + "-uve";
+    BOOST_TEST_EQ(label63.size(), 63U);
+    hostname(label63, true);
+    hostname("XN--" + std::string(55, 'A') + "-UVE", true);
+    hostname(label63 + ".example", true);
+    // 56 times a, then the same letter: 64 octets.
+    const std::string label64 = "xn--" + std::string(56, 'a') + "-qye";
+    BOOST_TEST_EQ(label64.size(), 64U);
+    hostname(label64, false);
 }
 
 void the_rule_stops_and_reports() {
@@ -178,6 +192,7 @@ int main() {
     a_labels_in_either_case();
     a_labels_idna2008_refuses();
     an_a_label_meets_the_bidi_rule_alone();
+    a_labels_at_63_and_64_octets();
     the_rule_stops_and_reports();
     a_refusal_leaves_the_iterator();
     return boost::report_errors();

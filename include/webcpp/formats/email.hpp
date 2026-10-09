@@ -21,7 +21,6 @@
 #include <webcpp/formats/grammar.hpp>
 #include <webcpp/formats/hostname.hpp>
 
-#include <boost/system/error_code.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>

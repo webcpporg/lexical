@@ -28,10 +28,11 @@ label. Another label with `+--+` in its third and fourth places, an R-LDH
 label such as `+ab--cd+`, is a valid host name, as RFC 1123 says, and not an
 internationalized one (RFC 5890 2.3.1).
 
-Each A-label is judged alone: RFC 5893's Bidi rule across the labels of a
-name belongs to internationalized host names, so `+0a.xn--4db+` is a host
-name, while its U-label form, `0a.` and a Hebrew letter, is no
-internationalized host name.
+formats judges each A-label alone, a decision of its own, so RFC 5893's
+Bidi rule across the labels of a name, section 2, is checked only by
+`is_idn_hostname`: `+0a.xn--4db+` is a host name, while its U-label form,
+`0a.` and a Hebrew letter, is no internationalized host name. The two
+formats differ here by that decision, as they do on R-LDH labels.
 
 [#formats-email]
 === E-mail addresses
@@ -42,7 +43,16 @@ envelope: a local part of atoms joined by dots or a quoted string, at most
 `[IPv6:2001:db8::1]`, the tag in any case. RFC 5321's other literals need a
 tag registered with IANA, and `IPv6` is the only one, so
 `[RFC-5322-domain-literal]` is invalid. RFC 5322's comments and display
-names are not part of a Mailbox.
+names are not part of a Mailbox. Only the local part and the host name are
+limited in length: RFC 5321 4.5.3.1.3's limit of 256 octets on a whole
+path, angle brackets included, is not checked.
+
+A literal's addresses are judged by Boost.URL's rules, RFC 3986's IPv4
+address and RFC 4291's IPv6 address, rather than by RFC 5321 4.1.3's own
+`Snum` and `IPv6-comp`: an IPv4 part with a leading zero, `[001.2.3.4]`,
+which `Snum` allows, is invalid, and an IPv6 address whose `::` stands for
+a single group, `[IPv6:1:2:3:4:5:6::8]`, which `IPv6-comp` refuses, is
+valid.
 
 Its address literal is a composition of Boost.URL's combinators,
 `tuple_rule`, `variant_rule`, `delim_rule` and `squelch`, over Boost.URL's
