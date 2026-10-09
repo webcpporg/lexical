@@ -10,10 +10,15 @@
 // non-string test checks json_schema's rule that a format applies to strings only, so it must
 // expect valid, and is counted apart. The run fails on a failure its dialect's known-failure list
 // does not name, on a listed test that passes or that the suite does not hold, and on a format
-// that maps to no validator. WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE names the suite's root, from
-// /webcpp/third_party//json-schema-test-suite, and WEBCPP_TEST_FORMATS_KNOWN_FAILURES the lists'
-// directory, from test/Jamfile. A known failure names its file as json_schema's lists do, by its
-// path under the dialect's directory (optional/format/uuid.json).
+// that maps to no validator. It also fails, by name, on a known failure that names a test no
+// validator judges (a pending or unknown format, a non-string test), on a list that names a test
+// twice, on a case whose schema holds a keyword besides format, and on a line of the lists below
+// that names a format or a dialect the suite does not hold. On WASI it says by name that it is
+// skipped, until the build gives it the suite's directory. WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE
+// names the suite's root, from /webcpp/third_party//json-schema-test-suite, and
+// WEBCPP_TEST_FORMATS_KNOWN_FAILURES the lists' directory, from test/Jamfile. A known failure names
+// its file as json_schema's lists do, by its path under the dialect's directory
+// (optional/format/uuid.json).
 
 #include <webcpp/formats.hpp>
 
@@ -34,6 +39,7 @@
 #include <string_view>
 #include <system_error>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace formats = webcpp::formats;
@@ -181,6 +187,13 @@ struct known_failures {
     std::set<test_id> met;
 };
 
+/** What one dialect's run reads and finds: its known failures, its counts, the formats it met. */
+struct dialect_run {
+    known_failures failures;
+    tally counted;
+    std::set<std::string> formats;
+};
+
 /** Where a test is, and the validator its case's format maps to: null when pending or unknown. */
 struct where {
     std::string_view dialect;
@@ -218,6 +231,30 @@ std::string_view string_at(const json::object& object, std::string_view key) {
     return {s.data(), s.size()};
 }
 
+/**
+ Whether every entry of dialect_validators names a dialect of dialects and a format of validators,
+ each wrong one named on the standard error.
+
+ Tip: a misspelled entry would leave its dialect on the default validator without a word, and the
+ suite tests no index manipulation, so no failure would show it.
+*/
+bool policies_name_what_exists() {
+    bool sound = true;
+    for (const dialect_mapping& m : dialect_validators) {
+        const bool dialect_exists =
+            std::ranges::find(dialects, m.dialect, &dialect::name) != dialects.end();
+        const bool format_exists =
+            std::ranges::find(validators, m.format, &mapping::format) != validators.end();
+        if (!BOOST_TEST(dialect_exists && format_exists)) {
+            std::cerr << "dialect_validators: the entry \"" << m.format << "\" / \"" << m.dialect
+                      << "\" names no " << (dialect_exists ? "format of validators" : "dialect")
+                      << '\n';
+            sound = false;
+        }
+    }
+    return sound;
+}
+
 /** The validator of `format` in the dialect `name`, its policy's where it has one. */
 validator validator_for(std::string_view format, std::string_view name) {
     for (const dialect_mapping& m : dialect_validators) {
@@ -252,9 +289,13 @@ std::set<test_id> read_known_failures(std::string_view name) {
             std::cerr << path.string() << ": an entry without its file, case, test and reason\n";
             continue;
         }
-        listed.emplace(std::string(string_at(*object, "file")),
-                       std::string(string_at(*object, "case")),
-                       std::string(string_at(*object, "test")));
+        const std::string_view file = string_at(*object, "file");
+        const std::string_view case_description = string_at(*object, "case");
+        const std::string_view test = string_at(*object, "test");
+        if (!BOOST_TEST(listed.emplace(file, case_description, test).second)) {
+            std::cerr << path.string() << ": the known failure \"" << file << "\" / \""
+                      << case_description << "\" / \"" << test << "\" is listed twice\n";
+        }
     }
     return listed;
 }
@@ -265,17 +306,34 @@ void report(const where& at, std::string_view test, std::string_view why) {
               << "\": " << why << '\n';
 }
 
+/** The test `description` of the case `at`, as a known failure names it. */
+test_id id_of(const where& at, std::string_view description) {
+    return {std::string(at.file), std::string(at.case_description), std::string(description)};
+}
+
+/** Fails a known failure that names a test no validator judges, saying why. */
+void refuse_listed(const where& at, std::string_view description, std::string_view why,
+                   known_failures& failures) {
+    const test_id id = id_of(at, description);
+    if (!failures.listed.contains(id)) {
+        return;
+    }
+    failures.met.insert(id);
+    BOOST_ERROR("a known failure names a test no validator judges");
+    report(at, description,
+           std::string("its dialect's known-failure list names it, and ") + std::string(why));
+}
+
 /** Judges one string test of the case `at` against its validator and the known failures. */
 void judge(const where& at, std::string_view description, const json::string& text, bool expected,
-           known_failures& failures, tally& counted) {
-    ++counted.strings;
+           dialect_run& run) {
+    ++run.counted.strings;
     const bool verdict = at.valid(std::string_view(text.data(), text.size()));
-    const test_id id{std::string(at.file), std::string(at.case_description),
-                     std::string(description)};
-    const bool listed = failures.listed.contains(id);
+    const test_id id = id_of(at, description);
+    const bool listed = run.failures.listed.contains(id);
     if (listed) {
-        failures.met.insert(id);
-        ++counted.known;
+        run.failures.met.insert(id);
+        ++run.counted.known;
     }
     if (verdict == expected) {
         if (!BOOST_TEST(!listed)) {
@@ -289,7 +347,7 @@ void judge(const where& at, std::string_view description, const json::string& te
 }
 
 /** Runs one test of the case `at`. */
-void run_test(const where& at, const json::object& test, known_failures& failures, tally& counted) {
+void run_test(const where& at, const json::object& test, dialect_run& run) {
     const json::value* data = test.if_contains("data");
     const json::value* expected = test.if_contains("valid");
     const std::string_view description = string_at(test, "description");
@@ -298,26 +356,51 @@ void run_test(const where& at, const json::object& test, known_failures& failure
         return;
     }
     if (!data->is_string()) {
-        ++counted.non_strings;
+        ++run.counted.non_strings;
         if (!BOOST_TEST(expected->get_bool())) {
             report(at, description, "a non-string instance expected invalid");
         }
+        refuse_listed(at, description, "it is a non-string test", run.failures);
         return;
     }
     if (at.format == unknown_format) {
-        ++counted.skipped;
+        ++run.counted.skipped;
+        refuse_listed(at, description, "its format \"unknown\" is skipped", run.failures);
         return;
     }
     if (at.valid == nullptr) {
-        ++counted.pending;
+        ++run.counted.pending;
+        refuse_listed(at, description,
+                      std::string("its format \"") + std::string(at.format) + "\" is pending",
+                      run.failures);
         return;
     }
-    judge(at, description, data->get_string(), expected->get_bool(), failures, counted);
+    judge(at, description, data->get_string(), expected->get_bool(), run);
+}
+
+/**
+ Whether the schema of the case `at` holds no keyword but `format` and `$schema`, each other named
+ on the standard error.
+
+ Tip: the runner judges a test on its format alone, so a keyword that changes a verdict would be
+ misread, not ignored.
+*/
+bool schema_is_format_alone(const where& at, const json::object& schema) {
+    bool alone = true;
+    for (const json::key_value_pair& member : schema) {
+        if (!BOOST_TEST(member.key() == "format" || member.key() == "$schema")) {
+            std::cerr << at.dialect << '/' << at.file << ": \"" << at.case_description
+                      << "\": the schema's keyword \"" << member.key()
+                      << "\", which the runner does not judge\n";
+            alone = false;
+        }
+    }
+    return alone;
 }
 
 /** Runs every test of one case, `group`, of `file` in the dialect `name`. */
 void run_case(std::string_view name, std::string_view file, const json::value& group,
-              known_failures& failures, tally& counted) {
+              dialect_run& run) {
     const json::object* object = group.if_object();
     const json::value* schema = object == nullptr ? nullptr : object->if_contains("schema");
     const json::value* tests = object == nullptr ? nullptr : object->if_contains("tests");
@@ -334,21 +417,25 @@ void run_case(std::string_view name, std::string_view file, const json::value& g
         .format = format,
         .valid = validator_for(format, name),
     };
+    run.formats.emplace(format);
     const bool is_pending = std::ranges::find(pending, format) != pending.end();
     if (!BOOST_TEST(at.valid != nullptr || is_pending || format == unknown_format)) {
         std::cerr << name << '/' << file << ": the format \"" << format
                   << "\" maps to no validator\n";
         return;
     }
+    if (!schema_is_format_alone(at, schema->get_object())) {
+        return;
+    }
     for (const json::value& test : tests->get_array()) {
         if (const json::object* t = test.if_object(); BOOST_TEST(t != nullptr)) {
-            run_test(at, *t, failures, counted);
+            run_test(at, *t, run);
         }
     }
 }
 
 /** Runs every case of the file at `path`. */
-void run_file(const dialect& d, const fs::path& path, known_failures& failures, tally& counted) {
+void run_file(const dialect& d, const fs::path& path, dialect_run& run) {
     // The file as json_schema's known-failure lists name it: under the dialect's directory.
     const std::string file = std::string(d.formats) + "/" + path.filename().string();
     const std::optional<json::value> document = read_json(path);
@@ -356,12 +443,12 @@ void run_file(const dialect& d, const fs::path& path, known_failures& failures, 
         return;
     }
     for (const json::value& group : document->get_array()) {
-        run_case(d.name, file, group, failures, counted);
+        run_case(d.name, file, group, run);
     }
 }
 
-/** Runs every format test of the dialect `d`, and prints what it counted. */
-void run_dialect(const dialect& d) {
+/** Runs every format test of the dialect `d`, prints what it counted, and returns its formats. */
+std::set<std::string> run_dialect(const dialect& d) {
     const fs::path directory =
         fs::path(WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE "/tests") / d.name / d.formats;
     std::vector<fs::path> files;
@@ -373,31 +460,100 @@ void run_dialect(const dialect& d) {
     }
     if (!BOOST_TEST(!error && !files.empty())) {
         std::cerr << directory.string() << ": no format tests: " << error.message() << '\n';
-        return;
+        return {};
     }
     std::ranges::sort(files);
-    known_failures failures{.listed = read_known_failures(d.name), .met = {}};
-    tally counted;
+    dialect_run run;
+    run.failures.listed = read_known_failures(d.name);
     for (const fs::path& path : files) {
-        run_file(d, path, failures, counted);
+        run_file(d, path, run);
     }
-    for (const test_id& id : failures.listed) {
-        if (!BOOST_TEST(failures.met.contains(id))) {
+    for (const test_id& id : run.failures.listed) {
+        if (!BOOST_TEST(run.failures.met.contains(id))) {
             std::cerr << d.name << ": the known failure \"" << std::get<0>(id) << "\" / \""
                       << std::get<1>(id) << "\" / \"" << std::get<2>(id)
-                      << "\" is no string test of the suite\n";
+                      << "\" is no test of the suite\n";
         }
     }
+    const tally& counted = run.counted;
     std::cout << d.name << ": " << counted.strings << " string tests, " << counted.known
               << " known failures, " << counted.pending << " pending, " << counted.non_strings
               << " non-string, " << counted.skipped << " skipped (unknown)\n";
+    return std::move(run.formats);
+}
+
+/**
+ Checks that every format validators, pending and dialect_validators name is one the suite holds,
+ in the dialect a policy names: a misspelled line would otherwise judge nothing, without a word.
+*/
+void check_every_format_met(const std::set<std::pair<std::string, std::string>>& met) {
+    const auto anywhere = [&](std::string_view format) {
+        return std::ranges::any_of(met, [&](const auto& m) { return m.second == format; });
+    };
+    for (const mapping& m : validators) {
+        if (!BOOST_TEST(anywhere(m.format))) {
+            std::cerr << "validators: \"" << m.format
+                      << "\" is a format no file of the suite holds\n";
+        }
+    }
+    for (const std::string_view format : pending) {
+        if (!BOOST_TEST(anywhere(format))) {
+            std::cerr << "pending: \"" << format << "\" is a format no file of the suite holds\n";
+        }
+    }
+    for (const dialect_mapping& m : dialect_validators) {
+        if (!BOOST_TEST(met.contains({std::string(m.dialect), std::string(m.format)}))) {
+            std::cerr << "dialect_validators: no file of " << m.dialect << " holds \"" << m.format
+                      << "\"\n";
+        }
+    }
+}
+
+#ifdef __wasi__
+/** Whether this program is built for WASI, where it reads no host file but in a directory given. */
+constexpr bool built_for_wasi = true;
+#else
+/** Whether this program is built for WASI, where it reads no host file but in a directory given. */
+constexpr bool built_for_wasi = false;
+#endif
+
+/**
+ Says by name, on the standard output, that the suite is skipped on WASI, and fails if this program
+ can read the suite after all.
+
+ Tip: wasmtime gives a program no host directory unless told, and the build gives it the suite's
+ and the lists' only through webcpp.data, which it does not use yet. A skip that outlives that
+ reason fails, so that the suite is run on WASI once it can be.
+*/
+int skip_on_wasi() {
+    std::error_code error;
+    const bool readable =
+        fs::is_directory(fs::path(WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE "/tests"), error);
+    if (!BOOST_TEST(!readable)) {
+        std::cerr << "suite: the suite is readable on WASI: run it here, and remove its skip\n";
+        return boost::report_errors();
+    }
+    std::cout << "suite: skipped on WASI: the suite and its known-failure lists reach a WASI "
+                 "program only through the data directory of webcpp.data, which this build does "
+                 "not give it yet\n";
+    return boost::report_errors();
 }
 
 }  // namespace
 
 int main() {
-    for (const dialect& d : dialects) {
-        run_dialect(d);
+    if (built_for_wasi) {
+        return skip_on_wasi();
     }
+    if (!policies_name_what_exists()) {
+        return boost::report_errors();
+    }
+    std::set<std::pair<std::string, std::string>> met;
+    for (const dialect& d : dialects) {
+        for (std::string format : run_dialect(d)) {
+            met.emplace(std::string(d.name), std::move(format));
+        }
+    }
+    check_every_format_met(met);
     return boost::report_errors();
 }

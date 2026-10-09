@@ -24,5 +24,6 @@ holds only what is specific to formats.
   webcpp is BSL-1.0. `test/known_failures/<dialect>.json` lists the tests
   expected to fail, each with its reason, and only a residue tied to a
   Unicode version may be one; the runner fails on an unlisted failure and on
-  a listed test that passes, so a list never lies. Moving the submodule is a
-  change of its own, with every new failure fixed or listed in it.
+  a listed test that passes or that the suite does not hold, so a list never
+  lies. Moving the submodule is a change of its own, with every new failure
+  fixed or listed in it.
