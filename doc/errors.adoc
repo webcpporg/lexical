@@ -1,0 +1,29 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-errors]
+== Errors
+
+A validator answers `bool`: whether the string is in the format. A rule
+answers a `grammar::result`, the text it matched or why it refused, and
+formats has no error category of its own:
+
+* `boost::urls::grammar::error::mismatch`: no text of the format starts
+  where the rule was asked to match, so a `variant_rule` tries its next
+  alternative;
+* `boost::urls::grammar::error::invalid`: the format's text started there and
+  broke one of its constraints, a month 13 or a leap second at the wrong
+  minute;
+* `boost::urls::grammar::error::leftover`, from `parse` on a whole string:
+  the format's text ended before the string did;
+* an error of `webcpp::idna`, from the rules of internationalized names: the
+  reason UTS 46 or IDNA2008 refused the name.
+
+formats raises no exception of its own, and builds without exceptions.
+`WEBCPP_FORMATS_NO_EXCEPTIONS`, defined without exceptions or by the
+developer, changes nothing in it: it exists so that a program can set it for
+every webcpp library alike. Only a memory resource can throw, `std::bad_alloc`
+from the default one, and only the functions that take a resource reach one.

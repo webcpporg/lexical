@@ -1,0 +1,27 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+project : requirements <library>/webcpp/formats//formats ;
+
+import webcpp ;
+
+webcpp.targets native wasip2 wasip3 emscripten ;
+
+webcpp.headers-alone formats : ../include ;
+
+# config.hpp defines WEBCPP_FORMATS_NO_EXCEPTIONS exactly when the build has
+# no exceptions, and keeps it when a developer defines it in a build that
+# has them.
+webcpp.compile config : config_test.cpp ;
+webcpp.compile config_developer_defined : config_test.cpp
+  : <define>WEBCPP_FORMATS_NO_EXCEPTIONS
+    <define>WEBCPP_TEST_FORMATS_DEVELOPER_DEFINED ;
+
+# The terminals every format shares: UTF-8, the character sets, the rules.
+webcpp.run detail : detail_test.cpp ;
+# What every validator allocates: nothing, but through a resource it is
+# given.
+webcpp.run allocation : allocation_test.cpp ;

@@ -1,0 +1,42 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-introduction]
+== Introduction
+
+JSON Schema names string formats, `date-time`, `email`, `hostname`, `uri`,
+`regex` and the others, each defined by an RFC or by ECMA-262. formats checks
+each of them as its reference defines it, and nothing more: a validator
+answers whether a string is in the format, and a rule says where in a longer
+input the format's text ends.
+
+Every validator takes any byte string. One that is not well-formed UTF-8 is
+invalid in every format, and in the formats that are ASCII, so is any byte
+above 0x7F.
+
+[%header,cols="2,3,4"]
+|===
+| Format | Function | Reference
+| `date-time` | `is_date_time` | RFC 3339 5.6, 5.7
+| `date` | `is_date` | RFC 3339 5.6 `full-date`
+| `time` | `is_time` | RFC 3339 5.6 `full-time`
+| `duration` | `is_duration` | RFC 3339 appendix A
+| `email` | `is_email` | RFC 5321 4.1.2
+| `idn-email` | `is_idn_email` | RFC 6531 3.3
+| `hostname` | `is_hostname` | RFC 1123 2.1, RFC 5890 2.3.2.1
+| `idn-hostname` | `is_idn_hostname` | RFC 5890 2.3.2.3, UTS 46
+| `ipv4` | `is_ipv4` | RFC 2673 3.2
+| `ipv6` | `is_ipv6` | RFC 4291 2.2
+| `uri` | `is_uri` | RFC 3986 3
+| `uri-reference` | `is_uri_reference` | RFC 3986 4.1
+| `iri` | `is_iri` | RFC 3987 2.2
+| `iri-reference` | `is_iri_reference` | RFC 3987 2.2
+| `uri-template` | `is_uri_template` | RFC 6570 2
+| `json-pointer` | `is_json_pointer` | RFC 6901 3
+| `relative-json-pointer` | `is_relative_json_pointer` | draft-handrews-relative-json-pointer-01
+| `uuid` | `is_uuid` | RFC 9562 4
+| `regex` | `is_regex` | ECMA-262 `Pattern`, `u` mode
+|===

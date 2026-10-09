@@ -1,0 +1,10 @@
+{
+    "key": "formats",
+    "name": "formats",
+    "authors": ["R"],
+    "description": "Validators and Boost.URL grammar rules for the string formats of JSON Schema, for C++20.",
+    "category": ["Parsing", "String"],
+    "maintainers": ["R <github.overboard312@passmail.net>"],
+    "cxxstd": "20",
+    "port-of": null
+}

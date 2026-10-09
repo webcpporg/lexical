@@ -1,0 +1,31 @@
+{
+    "boundaries": [
+        {
+            "headers": [
+                "include/webcpp/formats.hpp",
+                "include/webcpp/formats/*.hpp",
+                "include/webcpp/formats/detail/*.hpp"
+            ],
+            "must-not-include": ["srell"],
+            "why": "only regex.hpp depends on SRELL"
+        },
+        {
+            "headers": [
+                "include/webcpp/formats.hpp",
+                "include/webcpp/formats/*.hpp",
+                "include/webcpp/formats/detail/*.hpp"
+            ],
+            "must-not-include": ["webcpp/idna/detail"],
+            "why": "formats uses idna's public interface"
+        },
+        {
+            "headers": [
+                "include/webcpp/formats.hpp",
+                "include/webcpp/formats/*.hpp",
+                "include/webcpp/formats/detail/*.hpp"
+            ],
+            "must-not-include": ["boost/json"],
+            "why": "JSON is the suite runner's, not the library's"
+        }
+    ]
+}

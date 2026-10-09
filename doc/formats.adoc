@@ -1,0 +1,35 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+= formats: the string formats of JSON Schema for {cpp}
+:toc: left
+:toclevels: 1
+:idprefix:
+:sectanchors:
+:example-caption!:
+:attribute-missing: warn
+
+formats is a header-only library of validators for the string formats of
+JSON Schema, in {cpp}20, one of the libraries of
+https://github.com/webcpporg/webcpp[webcpp]. Each format is a function that
+takes a `std::string_view` and answers `bool`, allocating nothing, and a
+Boost.URL grammar rule, which composes with Boost.URL's combinators into
+grammars of a program's own.
+
+include::introduction.adoc[]
+
+include::errors.adoc[]
+
+include::testing.adoc[]
+
+[#reference]
+== Reference
+
+Every name formats declares, in the namespaces `webcpp::formats` and
+`webcpp::formats::grammar`, from the Doc Comments of its headers. The other
+sections teach the library; this one is where a name is looked up.
+
+include::{reference}[leveloffset=+1]
