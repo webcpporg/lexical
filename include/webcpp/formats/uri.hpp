@@ -40,9 +40,10 @@ namespace grammar {
  The rule of RFC 3986 4.1's URI-reference: Boost.URL's `uri_reference_rule`, then a guard.
 
  Boost.URL 1.92 accepts a relative reference whose path after the authority is not
- `path-abempty` (RFC 3986 4.2): `//example.com:abc/p`, whose port is not a number, and an
- authority that holds two at signs; the guard refuses them. It yields Boost.URL's `url_view` of
- the reference, and stops where Boost.URL's rule does.
+ `path-abempty` (RFC 3986 4.2), as `//example.com:abc/p`, whose port is not a number, and an
+ authority that holds two at signs; with a scheme, it stops the URI at that authority. The guard
+ refuses both forms with `error::invalid`. Otherwise the rule yields Boost.URL's `url_view` of the
+ reference, and stops where Boost.URL's rule does.
 
  @see "URIs and IRIs", in the guide.
 */
@@ -56,7 +57,8 @@ struct uri_reference_rule_t {
      @param it The start of the input: past the match on success, else unchanged.
      @param end The end of the input.
      @return The view of the reference; Boost.URL's error when its rule refuses the input;
-     `error::invalid` when the guard does.
+     `error::invalid` when the guard does, a reference that ends at its authority before a
+     character that starts a path segment included.
     */
     [[nodiscard]] result<boost::urls::url_view> parse(char const*& it,
                                                       char const* end) const noexcept;
@@ -76,7 +78,9 @@ inline result<boost::urls::url_view> uri_reference_rule_t::parse(char const*& it
         return reference.error();
     }
     // Read with unsafe_value: the result holds a value here, and operator* may throw.
-    if (detail::refuses_relative_authority_path(reference.unsafe_value())) {
+    const boost::urls::url_view view = reference.unsafe_value();
+    if (detail::refuses_relative_authority_path(view) ||
+        detail::refuses_authority_before_segment(view, it, end)) {
         it = first;
         return detail::urlg::error::invalid;
     }

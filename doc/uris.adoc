@@ -13,10 +13,12 @@ a URI or a relative reference, with one guard. RFC 3986 4.2 gives a relative
 reference that has an authority a `path-abempty`, empty or led by `/`.
 Boost.URL 1.92 accepts `//example.com:abc/p`, read as host `example.com`, an
 empty port and the path `abc/p`, and `//a@b@example.com/`, read as user `a`,
-host `b` and the path `@example.com/`. With a scheme it refuses both. formats
-refuses a relative reference whose path after an authority is neither empty
-nor led by `/`; the fix is proposed upstream, and the guard leaves with the
-first Boost release that carries it.
+host `b` and the path `@example.com/`. With a scheme it refuses both, and
+stops the URI at the authority, so that inside a larger grammar Boost.URL's
+rule matches `http://a@b` of `http://a@b@example.com/`. formats refuses a
+relative reference whose path after an authority is neither empty nor led by
+`/`, and `uri_reference_rule` refuses both forms alike with `error::invalid`.
+The guard stays until a Boost release refuses those references itself.
 
 A zone identifier of RFC 6874, `http://[fe80::1%25eth0]/`, is valid, as
 Boost.URL says: RFC 3986 alone has no zone identifiers, and JSON Schema's
@@ -24,5 +26,6 @@ suite does not test one (the appendix "Known deviations").
 
 Boost.URL is a compiled library: a program that uses these formats links
 `/webcpp//boost_url`, which `/webcpp/formats//formats` brings. Measured on
-2026-10-09 with Boost 1.92 and wasi-sdk 34, a stripped wasm32-wasip2 program
+2026-10-09 with Boost 1.92 and wasi-sdk 34, built with b2's release flags
+(`-O3`, wasm exceptions) and stripped at link time, a wasm32-wasip2 program
 that calls `is_uri` is 85,625 bytes larger than an empty one.

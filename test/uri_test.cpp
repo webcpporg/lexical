@@ -4,10 +4,10 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// RFC 3986's URI and URI reference through Boost.URL: section 1.1.2's examples, the guard's two
-// inputs refused (and the same with a scheme), the zone id verdict Boost.URL gives, and a pin of
-// Boost.URL's own reading of the two inputs, which fails the day a Boost release fixes it, when
-// the guard can leave.
+// RFC 3986's URI and URI reference through Boost.URL: section 1.1.2's examples, the guard's inputs
+// refused (and the same with a scheme), alone and inside a larger grammar, the zone id verdict
+// Boost.URL gives, and a pin of Boost.URL's own reading of two of them, which fails the day a
+// Boost release fixes it, when the guard can leave.
 
 #include <webcpp/formats/uri.hpp>
 
@@ -81,10 +81,14 @@ void uris_and_references() {
 
 void the_guard() {
     // RFC 3986 4.2: a relative reference with an authority has a path-abempty, empty or led by
-    // "/". Boost.URL 1.92 reads these two as an authority and a path that is neither.
+    // "/". Boost.URL 1.92 reads each of these as an authority and a path that is neither: after a
+    // port that is not a number, a second at sign, or an IP literal.
     reference("//example.com:abc/p", false);
     reference("//a@b@example.com/", false);
     reference("//:abc/p", false);
+    reference("//example.com:abc", false);
+    reference("//h:1a/p", false);
+    reference("//[::1]x/p", false);
     uri("http://example.com:abc/p", false);
     uri("http://a@b@example.com/", false);
     reference("http://example.com:abc/p", false);
@@ -94,11 +98,14 @@ void the_guard() {
     reference("//example.com", true);
     reference("//example.com?q", true);
     reference("//example.com#f", true);
+    reference("//example.com:/p", true);
+    reference("///p", true);
+    reference("//", true);
 }
 
 void boost_url_still_needs_the_guard() {
-    // When this fails, Boost.URL refuses the input itself: the guard and its changelog line
-    // leave, in the change that moves to that Boost release, and the_guard stays.
+    // When this fails, Boost.URL refuses the input itself: refuses_relative_authority_path and its
+    // changelog line leave, in the change that moves to that Boost release, and the_guard stays.
     const auto port = boost::urls::parse_uri_reference("//example.com:abc/p");
     if (BOOST_TEST(port.has_value())) {
         BOOST_TEST_EQ(port->encoded_host(), "example.com");
@@ -117,12 +124,48 @@ void zone_ids_keep_boost_urls_verdict() {
     reference("//[fe80::1%25eth0]/", true);
 }
 
-void the_rule_inside_a_grammar() {
-    const std::string_view text = "//a@b@example.com/";
+/** Checks that the rule refuses `text` as invalid, its iterator unchanged. */
+void invalid_inside_a_grammar(std::string_view text) {
     char const* it = text.data();
     const auto r = fg::uri_reference_rule.parse(it, text.data() + text.size());
-    BOOST_TEST(r.has_error() && r.error() == urlg::error::invalid);
+    if (!BOOST_TEST(r.has_error() && r.error() == urlg::error::invalid)) {
+        std::cerr << "uri_reference_rule: \"" << text << "\"\n";
+    }
     BOOST_TEST(it == text.data());
+}
+
+/** Checks that the rule matches `match`, a prefix of `text`, and stops after it. */
+void matches_inside_a_grammar(std::string_view text, std::string_view match) {
+    char const* it = text.data();
+    const auto r = fg::uri_reference_rule.parse(it, text.data() + text.size());
+    if (!BOOST_TEST(r.has_value() && r.unsafe_value().buffer() == match)) {
+        std::cerr << "uri_reference_rule: \"" << text << "\" should match \"" << match << "\"\n";
+    }
+    BOOST_TEST(it == text.data() + match.size());
+}
+
+void the_rule_inside_a_grammar() {
+    // The guard's inputs, with a scheme and without: Boost.URL stops a URI at the authority and
+    // reads a relative reference's rest as a path, and the rule refuses both alike.
+    constexpr std::array<std::string_view, 7> guarded{
+        "//a@b@example.com/",        // a second at sign
+        "http://a@b@example.com/",   //
+        "//example.com:abc/p",       // a port that is not a number
+        "http://example.com:abc/p",  //
+        "//[::1]x/p",                // something after an IP literal
+        "http://[::1]x/p",           //
+        "http://h:1%41",             // a percent-encoded octet after the port
+    };
+    for (const std::string_view text : guarded) {
+        invalid_inside_a_grammar(text);
+    }
+    // What no path segment starts ends a reference as Boost.URL ends it: a colon after the port, a
+    // space, and what a query cannot hold.
+    matches_inside_a_grammar("http://h:80:x", "http://h:80");
+    matches_inside_a_grammar("//h:80:x", "//h:80");
+    matches_inside_a_grammar("http://h c", "http://h");
+    matches_inside_a_grammar("http://h?q%zz", "http://h?q");
+    matches_inside_a_grammar("//h?q%zz", "//h?q");
     // Boost.URL's rule leaves its iterator past what it read when it refuses; the rule does not.
     const std::string_view broken = "a/%zz";
     char const* at = broken.data();
@@ -135,6 +178,15 @@ void the_rule_inside_a_grammar() {
     if (BOOST_TEST(pair.has_value())) {
         BOOST_TEST_EQ(std::get<0>(*pair).buffer(), "a/b");
         BOOST_TEST_EQ(std::get<1>(*pair).buffer(), "c/d");
+    }
+    // An authority that a character outside every path segment ends stays a match.
+    const auto authorities =
+        urlg::parse("http://u@h:80 //h?q",
+                    urlg::tuple_rule(fg::uri_reference_rule, urlg::squelch(urlg::delim_rule(' ')),
+                                     fg::uri_reference_rule));
+    if (BOOST_TEST(authorities.has_value())) {
+        BOOST_TEST_EQ(std::get<0>(*authorities).buffer(), "http://u@h:80");
+        BOOST_TEST_EQ(std::get<1>(*authorities).buffer(), "//h?q");
     }
 }
 

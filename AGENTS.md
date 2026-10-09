@@ -29,13 +29,17 @@ holds only what is specific to formats.
   fixed or listed in it.
 - **The uri-reference guard.** `detail/uri_guard.hpp` refuses what Boost.URL
   1.92's `uri_reference_rule` wrongly accepts: a relative reference whose
-  path after an authority is not empty and not led by `/`. The fix is offered
-  upstream (the owner's issue on boostorg/url); `uri_test`'s
-  `boost_url_still_needs_the_guard` fails the day the configured Boost
-  refuses those inputs itself, and the guard then leaves in a change of its
-  own, with a changelog line, while `the_guard` stays.
+  path after an authority is not empty and not led by `/`
+  (`refuses_relative_authority_path`). With a scheme, Boost.URL stops the URI
+  at that authority instead, and `refuses_authority_before_segment` makes the
+  rule refuse it too, so that a grammar meets `error::invalid` either way.
+  The guard stays until Boost.URL refuses those references itself:
+  `uri_test`'s `boost_url_still_needs_the_guard` fails the day the configured
+  Boost does, and `refuses_relative_authority_path` then leaves in a change
+  of its own, with a changelog line, while `refuses_authority_before_segment`,
+  `the_guard` and `the_rule_inside_a_grammar` stay.
 - **Boost.URL's compiled part.** `/webcpp//boost_url`, which `build.jam`
   names, builds Boost.URL from Boost's sources for every target: `ipv4_address`
   is defined there. On MSVC, which never defines
-  `BOOST_URL_HAS_CXX20_CONSTEXPR`, even the grammar's error category is, so no
-  format links without it there.
+  `BOOST_URL_HAS_CXX20_CONSTEXPR`, even the grammar's error category is
+  defined there, so no format links without it.
