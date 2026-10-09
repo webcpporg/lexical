@@ -6,6 +6,7 @@
 
 project : requirements <library>/webcpp/formats//formats ;
 
+import regex ;
 import webcpp ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
@@ -30,3 +31,19 @@ webcpp.run json_pointer : json_pointer_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;
+
+# The JSON Schema Test Suite comes from /webcpp/third_party, which gives its
+# root as WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE; the known-failure lists are
+# formats' own, named with forward slashes, the define quoted whole, for a
+# checkout whose path holds a space. Natively and on emscripten, whose
+# -sNODERAWFS=1 reads the host's files; wasip2 and wasip3 join once the
+# lists' directory is given to them too (webcpp.data).
+path-constant KNOWN_FAILURES : known_failures ;
+local known = [ regex.replace $(KNOWN_FAILURES) "\\\\" "/" ] ;
+local lists = [ glob known_failures/*.json ] ;
+webcpp.run suite : suite_test.cpp
+  : <library>/webcpp//boost_json
+    <library>/webcpp/third_party//json-schema-test-suite
+    <define>"\"WEBCPP_TEST_FORMATS_KNOWN_FAILURES=\\\"$(known)\\\"\""
+    <dependency>$(lists)
+  : native emscripten ;
