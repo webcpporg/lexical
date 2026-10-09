@@ -61,6 +61,7 @@ void corner_probes() {
     iri("http://a/?\xEE\x80\x80", true);   // in a query
     iri("http://a/#\xEE\x80\x80", false);  // in a fragment
     iri("http://[v1.x]/", true);
+    iri("http://[V1.x]/", false);  // Boost.URL's verdict (the page's known deviations)
     // RFC 6874's zone id: Boost.URL's verdict, which formats keeps (the page's known deviations).
     iri("http://[::1%25eth0]/", true);
     iri("http://[::1%25%C3%A9]/", true);

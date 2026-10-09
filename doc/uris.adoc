@@ -63,7 +63,7 @@ of its mapped length from the memory resource given to
 A zone identifier of RFC 6874, `http://[fe80::1%25eth0]/`, is valid in a URI
 and in an IRI, as Boost.URL says, when it is ASCII: RFC 3986 and RFC 3987
 alone have no zone identifiers, and JSON Schema's suite does not test one
-(the appendix "Known deviations").
+(<<formats-uris-deviations>>).
 
 Boost.URL is a compiled library: a program that uses these formats links
 `/webcpp//boost_url`, which `/webcpp/formats//formats` brings. Measured on
@@ -71,3 +71,24 @@ Boost.URL is a compiled library: a program that uses these formats links
 (`-O3`, wasm exceptions) and stripped at link time, a wasm32-wasip2 program
 that calls `is_uri` is 85,625 bytes larger than an empty one.
 
+[#formats-uris-deviations]
+=== Known deviations
+
+formats is faithful to RFC 3986, the reference JSON Schema names for these
+formats, where Boost.URL 1.92 is more liberal. Beyond what Boost.URL
+refuses, formats refuses a relative reference whose path after an authority
+is neither empty nor led by `/`, `[` or `]` in a query, and `+#+` in a
+fragment, and its rules refuse a reference that Boost.URL's would stop at an
+authority before a path segment, as at the second `@` of
+`+http://a@b@example.com/+`. Compared with RFC 3986's ABNF on every ASCII
+character in each part of a reference and on 600,000 others generated at
+random, every verdict of formats is RFC 3986's but two, which are
+Boost.URL's and which formats keeps:
+
+* A zone identifier, `http://[fe80::1%25eth0]/`, is valid. RFC 6874 added
+it to RFC 3986's `IP-literal`; RFC 9844 obsoleted RFC 6874 in 2025 and
+reverted that change.
+* An `IPvFuture` led by an uppercase `V`, `http://[V1.x]/`, is refused,
+though RFC 5234 makes ABNF's quoted strings case-insensitive and RFC 3986's
+`"v"` matches it; `http://[v1.x]/` is valid. formats never loosens
+Boost.URL.

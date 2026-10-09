@@ -6,7 +6,7 @@
 
 // RFC 3986's URI and URI reference through Boost.URL: section 1.1.2's examples, the guard's inputs
 // refused (and the same with a scheme), alone and inside a larger grammar, a bracket in a query
-// and a number sign in a fragment refused, the zone id verdict Boost.URL gives, and
+// and a number sign in a fragment refused, the zone id and IPvFuture verdicts Boost.URL gives, and
 // pins of Boost.URL's own reading of what the guard refuses, each failing the day a Boost release
 // fixes it, when its part of the guard can leave.
 
@@ -214,6 +214,18 @@ void zone_ids_keep_boost_urls_verdict() {
     reference("//[fe80::1%25eth0]/", true);
 }
 
+void ipvfuture_keeps_boost_urls_verdict() {
+    // RFC 3986 3.2.2's IPvFuture starts with "v", which RFC 5234 2.3 makes case-insensitive, as
+    // every quoted string of ABNF; Boost.URL 1.92 refuses "V" (the page's "Known deviations"), and
+    // formats does not loosen Boost.URL. When this fails, Boost.URL takes "V" itself, and the
+    // deviation leaves the page.
+    uri("http://[V1.x]/", false);
+    reference("//[V1.x]/", false);
+    uri("http://[v1.x]/", true);
+    uri("http://[vF.x:y]/", true);
+    reference("//[v1a.!$]/", true);
+}
+
 /** Checks that the rule refuses `text` as invalid, its iterator unchanged. */
 void invalid_inside_a_grammar(std::string_view text) {
     char const* it = text.data();
@@ -319,6 +331,7 @@ int main() {
     boost_url_still_takes_brackets_in_a_query();
     boost_url_still_needs_the_guard();
     zone_ids_keep_boost_urls_verdict();
+    ipvfuture_keeps_boost_urls_verdict();
     the_rule_inside_a_grammar();
     return boost::report_errors();
 }

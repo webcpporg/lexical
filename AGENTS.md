@@ -58,6 +58,12 @@ holds only what is specific to formats.
   configured Boost refuses it itself, and the guard then leaves in a change
   of its own, with a changelog line, while
   `one_number_sign_before_the_fragment` stays.
+- **What formats keeps of Boost.URL.** Compared with RFC 3986's ABNF, one
+  verdict of Boost.URL 1.92 is stricter than RFC 3986, which formats keeps,
+  as it never loosens Boost.URL: an `IPvFuture` led by an uppercase `V`
+  (RFC 5234 makes the ABNF's `"v"` case-insensitive) is refused.
+  `uri_test`'s `ipvfuture_keeps_boost_urls_verdict` fails the day Boost
+  takes it, and the page's "Known deviations" then loses it.
 - **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:
