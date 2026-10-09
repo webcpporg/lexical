@@ -323,6 +323,50 @@ void idn_lengths() {
     idn_hostname(std::string(63, 'a') + "." + std::string(63, 'a') + "." + std::string(63, 'a') +
                      "." + std::string(61, 'a'),
                  true);
+    idn_hostname(std::string(63, 'a') + "." + std::string(63, 'a') + "." + std::string(63, 'a') +
+                     "." + std::string(62, 'a'),
+                 false);
+}
+
+/** `count` times `text`. */
+std::string repeated(std::string_view text, std::size_t count) {
+    std::string out;
+    for (std::size_t i = 0; i < count; ++i) {
+        out += text;
+    }
+    return out;
+}
+
+/** The length of the ASCII form of `name`, converted without the DNS lengths; 0 when refused. */
+std::size_t ascii_length(std::string_view name) {
+    std::array<char, 1024> ascii{};
+    const auto converted =
+        webcpp::idna::to_ascii(ascii, name, webcpp::idna::options{.verify_dns_length = false});
+    return converted ? converted.value() : 0;
+}
+
+/** The DNS lengths count the name's ASCII form, never the octets as written. */
+void idn_lengths_are_the_ascii_forms() {
+    // FULLWIDTH LATIN SMALL LETTER A, three octets written and one in the ASCII form: labels of 63,
+    // 63, 63 and 61 make 753 octets written and 253 in the ASCII form.
+    const std::string_view fullwidth_a = "\xEF\xBD\x81";
+    const std::string wide = repeated(fullwidth_a, 63) + "." + repeated(fullwidth_a, 63) + "." +
+                             repeated(fullwidth_a, 63) + "." + repeated(fullwidth_a, 61);
+    BOOST_TEST_EQ(wide.size(), 753U);
+    BOOST_TEST_EQ(ascii_length(wide), 253U);
+    idn_hostname(wide, true);
+    // Three labels of 63, then "u" with diaeresis and 55 "a", whose A-label is 63 octets: 249
+    // octets written and 255 in the ASCII form.
+    const std::string narrow = std::string(63, 'a') + "." + std::string(63, 'a') + "." +
+                               std::string(63, 'a') + ".\xC3\xBC" + std::string(55, 'a');
+    BOOST_TEST_EQ(narrow.size(), 249U);
+    BOOST_TEST_EQ(ascii_length(narrow), 255U);
+    idn_hostname(narrow, false);
+    // SOFT HYPHEN, which UTS 46 ignores: 2,002 octets written, "ab" in the ASCII form.
+    const std::string ignored = "a" + repeated("\xC2\xAD", 1'000) + "b";
+    BOOST_TEST_EQ(ignored.size(), 2'002U);
+    BOOST_TEST_EQ(ascii_length(ignored), 2U);
+    idn_hostname(ignored, true);
 }
 
 /** Matches `text` with `rule`, and checks the error and that the iterator stayed. */
@@ -435,6 +479,7 @@ int main() {
     names_idna2008_refuses();
     idn_host_names();
     idn_lengths();
+    idn_lengths_are_the_ascii_forms();
     the_idn_rules_stop_and_report();
     only_the_three_separators_map_to_a_dot();
     return boost::report_errors();

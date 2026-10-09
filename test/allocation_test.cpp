@@ -319,7 +319,10 @@ void iris_and_templates_allocate_within_their_bounds() {
     BOOST_TEST_EQ(global_deallocations() - released, 2U);
 }
 
-/** Internationalized names and addresses allocate nothing: idna works in fixed storage. */
+/**
+ Internationalized names and addresses allocate nothing, each call counted alone: idna works in
+ fixed storage, and every ASCII form below is longer than any small-string buffer.
+*/
 void idn_allocates_nothing() {
     std::string long_idn;
     for (int i = 0; i < 4; ++i) {
@@ -327,15 +330,32 @@ void idn_allocates_nothing() {
             "b\xC3\xBC"
             "cher.";
     }
-    long_idn += "example";
+    long_idn += "example";  // 63 octets in the ASCII form
     std::string hostile(100'000, 'a');
     hostile += "\xC3\xBC";
-    const std::size_t before = global_allocations();
+    const std::string mailbox = "\xCE\xB4@" + long_idn;
+    // A refused domain, after labels already converted.
+    const std::string refused = "\xCE\xB4@" + long_idn +
+                                ".a\xC2\xB7"
+                                "b";
+    // 55 "a" and "u" with diaeresis: an A-label of 63 octets.
+    const std::string label = std::string(55, 'a') + "\xC3\xBC";
+    std::size_t before = global_allocations();
     BOOST_TEST(webcpp::formats::is_idn_hostname(long_idn));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+    before = global_allocations();
     BOOST_TEST(!webcpp::formats::is_idn_hostname(hostile));
-    BOOST_TEST(
-        webcpp::formats::is_idn_email("\xCE\xB4@b\xC3\xBC"
-                                      "cher.example"));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+    before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_idn_email(mailbox));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+    before = global_allocations();
+    BOOST_TEST(!webcpp::formats::is_idn_email(refused));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+    before = global_allocations();
+    char const* it = label.data();
+    BOOST_TEST(webcpp::formats::grammar::idna_label_rule.parse(it, label.data() + label.size())
+                   .has_value());
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 

@@ -38,6 +38,10 @@ namespace {
 constexpr auto next_idn_host =
     urlg::tuple_rule(urlg::squelch(urlg::delim_rule(',')), fg::idn_hostname_rule);
 
+/** A dot, then an internationalized label. */
+constexpr auto next_label =
+    urlg::tuple_rule(urlg::squelch(urlg::delim_rule('.')), fg::idna_label_rule);
+
 /** A space, then a host name. */
 constexpr auto next_host =
     urlg::tuple_rule(urlg::squelch(urlg::delim_rule(' ')), fg::hostname_rule);
@@ -94,12 +98,15 @@ void where_each_rule_stops() {
           "a");
     // A separator at the input's end, where the bytes after it are fewer than its own.
     stops(fg::idna_label_rule, "example\xE3\x80\x82", "example");
+    stops(fg::uri_rule, "http://a/b c", "http://a/b");
+    stops(fg::iri_rule, "http://a/\xC3\xA9>x", "http://a/\xC3\xA9");
     stops(fg::email_rule, "a@b.example,c@d.example", "a@b.example");
     stops(fg::idn_email_rule,
           "\xCE\xB4@b\xC3\xBC"
           "cher.example x",
           "\xCE\xB4@b\xC3\xBC"
           "cher.example");
+    stops(fg::uri_template_rule, "{a}/b c", "{a}/b");
 }
 
 void runs_fail_whole() {
@@ -107,6 +114,7 @@ void runs_fail_whole() {
     fails_whole(fg::idn_hostname_rule,
                 "a\xC2\xB7"
                 "b/x");
+    fails_whole(fg::iri_rule, "http://a/\xE2\x80\x8E x");
 }
 
 void rules_inside_the_combinators() {
@@ -131,7 +139,7 @@ void rules_inside_the_combinators() {
         urlg::variant_rule(fg::time_rule_t{webcpp::formats::leap_seconds::refused}, fg::date_rule));
     BOOST_TEST(!refused_leap.has_value());
     const auto host_or_reference = urlg::parse(
-        "../a b", urlg::tuple_rule(urlg::optional_rule(fg::hostname_rule), fg::uri_reference_rule,
+        "../a b", urlg::tuple_rule(urlg::optional_rule(fg::hostname_rule), fg::iri_reference_rule,
                                    urlg::squelch(urlg::delim_rule(' ')), fg::hostname_rule));
     BOOST_TEST(host_or_reference.has_value());
     const auto mailboxes = urlg::parse(
@@ -142,8 +150,13 @@ void rules_inside_the_combinators() {
         urlg::parse("0/foo#2eb8aa08-aa98-11ea-b4aa-73b441d16380",
                     urlg::tuple_rule(fg::relative_json_pointer_rule,
                                      urlg::squelch(urlg::delim_rule('#')), fg::uuid_rule));
-    BOOST_TEST(
-        !located.has_value());  // a json-pointer token holds "#": the pointer runs to the end
+    // A json-pointer token holds "#": the pointer runs to the end.
+    BOOST_TEST(!located.has_value());
+    const auto template_and_iri =
+        urlg::parse("{a}/b http://a/\xC3\xA9",
+                    urlg::tuple_rule(fg::uri_template_rule, urlg::squelch(urlg::delim_rule(' ')),
+                                     fg::iri_rule));
+    BOOST_TEST(template_and_iri.has_value());
     const auto duration_and_reference = urlg::parse(
         "P1D ../x", urlg::tuple_rule(fg::duration_rule, urlg::squelch(urlg::delim_rule(' ')),
                                      fg::uri_reference_rule));
@@ -151,6 +164,24 @@ void rules_inside_the_combinators() {
     const auto pointer_and_label = urlg::parse(
         "/a/b", urlg::tuple_rule(fg::json_pointer_rule, urlg::optional_rule(fg::idna_label_rule)));
     BOOST_TEST(pointer_and_label.has_value());
+    const auto iri_reference = urlg::parse("", fg::iri_reference_rule);
+    BOOST_TEST(iri_reference.has_value());
+    const auto uri_or_date =
+        urlg::parse("2020-01-01", urlg::variant_rule(fg::uri_rule, fg::date_rule));
+    BOOST_TEST(uri_or_date.has_value() && uri_or_date->index() == 1);
+}
+
+/**
+ Labels joined by a grammar's own dots are judged one at a time: the Bidi rule across them is the
+ grammar's to check, as idn_hostname_rule does.
+*/
+void labels_joined_by_a_grammar() {
+    const std::string_view name = "0a.\xD7\x90";
+    const auto labels = urlg::parse(
+        name, urlg::range_rule(urlg::ref(fg::idna_label_rule), urlg::ref(next_label), 1));
+    BOOST_TEST(labels.has_value() && labels->size() == 2);
+    const auto whole = urlg::parse(name, fg::idn_hostname_rule);
+    BOOST_TEST(whole.has_error() && whole.error() == idna::error::bidi);
 }
 
 void the_host_and_port_of_the_page() {
@@ -191,6 +222,7 @@ int main() {
     where_each_rule_stops();
     runs_fail_whole();
     rules_inside_the_combinators();
+    labels_joined_by_a_grammar();
     the_host_and_port_of_the_page();
     an_idn_rules_error_is_idnas();
     return boost::report_errors();

@@ -222,7 +222,10 @@ struct idn_hostname_rule_t {
  `webcpp::idna` for its verdict.
 
  The run stops also at `.`, U+3002, U+FF0E and U+FF61, so a grammar composes labels with its own
- separators. The label is checked as @ref idn_hostname_rule checks a name of one label.
+ separators. The label is checked as @ref idn_hostname_rule checks a name of one label, alone: a
+ grammar that joins labels into a name checks what spans the name itself, RFC 5893's Bidi rule
+ across its labels (section 2) and its 253 octets in the ASCII form, or hands the whole name to
+ @ref idn_hostname_rule, which checks both.
 
  @see "Composing rules", in the guide.
 */

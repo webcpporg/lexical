@@ -73,6 +73,6 @@ holds only what is specific to formats.
   `.`, U+3002, U+FF0E and U+FF61, the only code points UTS 46 maps to a
   sequence holding a dot in idna's tables (Unicode 17.0.0), which
   `hostname_test` checks by converting every code point between two letters,
-  so that a change of idna's Unicode version that adds one fails it. An internationalized Mailbox's lengths,
-  64 octets for its local part and 254 for the whole, are measured as
-  written, in UTF-8.
+  so that a change of idna's Unicode version that adds one fails it. An
+  internationalized Mailbox's lengths, 64 octets for its local part and 254
+  for the whole, are measured as written, in UTF-8.

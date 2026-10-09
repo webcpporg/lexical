@@ -9,17 +9,18 @@
 
 Every format but `regex` is also a Boost.URL rule, in
 `webcpp::formats::grammar`: an object whose type `<name>_rule_t` is public,
-so a rule that takes a parameter, `time_rule_t{leap_seconds::refused}`, is
-spelled without a factory. A rule yields the text it matched, as a
-`grammar::text`; `uri_reference_rule` yields Boost.URL's `url_view`. `ipv4`,
-`ipv6` and `uri` are Boost.URL's own rules, `boost::urls::ipv4_address_rule`,
-`ipv6_address_rule` and `uri_rule`.
+so a rule that takes a parameter, `time_rule_t{leap_seconds::refused}` or
+`iri_rule_t{&resource}`, is spelled without a factory. A rule yields the
+text it matched, as a `grammar::text`; `uri_rule` and `uri_reference_rule`
+yield Boost.URL's `url_view`. `ipv4` and `ipv6` are Boost.URL's own rules,
+`boost::urls::ipv4_address_rule` and `ipv6_address_rule`.
 
 A rule composes with Boost.URL's combinators, `tuple_rule`, `variant_rule`,
 `optional_rule`, `range_rule`, into a grammar of a program's own: an
-internationalized host and an optional port, `bücher.example:8080`, are
-`tuple_rule(idn_hostname_rule, optional_rule(tuple_rule(squelch(delim_rule(':')),
-unsigned_rule<std::uint16_t>{})))`, which yields the host's text and the port's
+internationalized host and an optional port, `bücher.example:8080`, are a
+`tuple_rule` of `idn_hostname_rule` and an `optional_rule` of another
+`tuple_rule`, a colon, `squelch(delim_rule(':'))`, then
+`unsigned_rule<std::uint16_t>`, which yields the host's text and the port's
 number. Where a rule stops inside a longer input is part of its contract:
 
 [%header,cols="2,5"]
@@ -30,13 +31,20 @@ number. Where a rule stops inside a longer input is part of its contract:
 | `idn_hostname_rule` | at the first ASCII character outside letters, digits, `-` and `.`; every non-ASCII byte belongs to the name, since UTS 46 may map it
 | `idna_label_rule` | as `idn_hostname_rule`, and also at `.`, U+3002, U+FF0E and U+FF61
 | `email_rule`, `idn_email_rule` | where the domain or the address literal does
+| `iri_rule`, `iri_reference_rule` | at the first byte no IRI holds: an ASCII control, the space, the double quote, the less-than and greater-than signs, the backslash, the circumflex, the grave accent, a brace or the vertical bar
+| `uri_template_rule` | at the first byte that is neither a literal nor the start of an expression; an expression or a percent sign that starts and breaks makes it fail
 | `json_pointer_rule` | at the end of the input: a token holds every other character
 |===
 
 Each validates the text it took and fails as a whole rather than match a
 shorter prefix, and a rule that fails leaves its input where it was.
 `idna_label_rule` is a terminal of formats' own that asks `webcpp::idna` for
-its verdict, so a grammar joins labels with separators of its own.
+its verdict, so a grammar joins labels with separators of its own. It judges
+each label alone: a grammar that joins labels into a name checks what spans
+the name itself, RFC 5893's Bidi rule across its labels (section 2) and its
+253 octets in the ASCII form, or hands the whole name to
+`idn_hostname_rule`, which checks both. Joined by a grammar's own dots,
+`0a.` and a label of a Hebrew letter are two valid labels and no valid name.
 
 An internationalized rule's error is idna's, the `idna::error` that refused
 the name (<<formats-errors>>), but only where nothing discards it: Boost.URL's
