@@ -17,13 +17,15 @@
 #include <webcpp/formats/detail/charsets.hpp>
 #include <webcpp/formats/detail/utf8.hpp>
 
+#include <boost/scope/scope_exit.hpp>
+
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <memory_resource>
 #include <optional>
 #include <span>
 #include <string_view>
-#include <vector>
 
 namespace webcpp::formats::detail {
 
@@ -54,15 +56,52 @@ constexpr char const* scan_iri(char const* first, char const* end) noexcept {
 }
 
 /**
+ Where an IRI's query, fragment and IP literal lie, as offsets into it, each npos when absent: the
+ parts RFC 3986 appendix B splits a reference into, which a valid IRI never mistakes.
+*/
+struct iri_parts {
+    /** The first "#": the fragment follows it. */
+    std::size_t fragment = std::string_view::npos;
+    /** The first "?": the query follows it, when it precedes the fragment. */
+    std::size_t query = std::string_view::npos;
+    /** The "[" that opens an IP literal in the authority. */
+    std::size_t literal = std::string_view::npos;
+    /** Where the authority that holds the IP literal ends. */
+    std::size_t authority_end = std::string_view::npos;
+};
+
+/** Finds the query, the fragment and the IP literal of `run` (RFC 3986 appendix B). */
+constexpr iri_parts find_iri_parts(std::string_view run) noexcept {
+    iri_parts parts;
+    parts.fragment = run.find('#');
+    parts.query = run.find('?');
+    // A scheme ends at a colon that comes before any "/", "?" or "#"; an authority starts with "//"
+    // after it and runs to the next "/", "?" or "#". Only there may a "[" open an IP literal.
+    const std::size_t delimiter = run.find_first_of(":/?#");
+    const std::size_t hier =
+        delimiter != std::string_view::npos && run[delimiter] == ':' ? delimiter + 1 : 0;
+    if (run.size() - hier < 2 || run[hier] != '/' || run[hier + 1] != '/') {
+        return parts;
+    }
+    const std::size_t authority = hier + 2;
+    const std::size_t authority_end = std::min(run.find_first_of("/?#", authority), run.size());
+    const std::size_t literal = run.find('[', authority);
+    if (literal < authority_end) {
+        parts.literal = literal;
+        parts.authority_end = authority_end;
+    }
+    return parts;
+}
+
+/**
  The length of `run` mapped to a URI, or nothing when it holds ill-formed UTF-8, a bidirectional
- formatting character, or a non-ASCII code point that is not ucschar (nor iprivate in the query,
- the text after the first "?" that precedes the first "#").
+ formatting character, a non-ASCII code point inside an IP literal, or one that is not ucschar
+ (nor iprivate in the query, the text after the first "?" that precedes the first "#").
 */
 constexpr std::optional<std::size_t> mapped_length(std::string_view run) noexcept {
     // No valid IRI holds a "?" before its query or a "#" before its fragment (RFC 3986
     // appendix B): the query is what lies after the first "?" and before the first "#".
-    const std::size_t fragment = run.find('#');
-    const std::size_t query = run.find('?');
+    const iri_parts parts = find_iri_parts(run);
     std::size_t length = 0;
     std::size_t i = 0;
     while (i < run.size()) {
@@ -76,7 +115,13 @@ constexpr std::optional<std::size_t> mapped_length(std::string_view run) noexcep
         if (!decode_utf8(run, i, cp) || is_bidi_format(cp)) {
             return std::nullopt;
         }
-        const bool in_query = query != std::string_view::npos && start > query && start < fragment;
+        // RFC 3987 takes its IP literal from RFC 3986, ASCII alone, and RFC 6874's ZoneID is
+        // unreserved or pct-encoded: mapped, a non-ASCII zone id would pass for a pct-encoded one.
+        if (start > parts.literal && start < parts.authority_end) {
+            return std::nullopt;
+        }
+        const bool in_query =
+            parts.query != std::string_view::npos && start > parts.query && start < parts.fragment;
         if (!is_ucschar(cp) && !(in_query && is_iprivate(cp))) {
             return std::nullopt;
         }
@@ -119,15 +164,19 @@ bool with_mapped_iri(std::string_view run, std::pmr::memory_resource* resource, 
         return parse(run);
     }
     if (*length <= iri_inline_capacity) {
-        std::array<char, iri_inline_capacity> buffer{};
+        // Left uninitialised: map_iri writes every octet that parse reads.
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        std::array<char, iri_inline_capacity> buffer;
         map_iri(run, std::span<char>(buffer.data(), *length));
         return parse(std::string_view(buffer.data(), *length));
     }
-    std::pmr::vector<char> buffer(
-        *length, std::pmr::polymorphic_allocator<char>(
-                     resource != nullptr ? resource : std::pmr::get_default_resource()));
-    map_iri(run, std::span<char>(buffer.data(), buffer.size()));
-    return parse(std::string_view(buffer.data(), buffer.size()));
+    std::pmr::polymorphic_allocator<char> allocator(
+        resource != nullptr ? resource : std::pmr::get_default_resource());
+    char* const buffer = allocator.allocate(*length);
+    const boost::scope::scope_exit release(
+        [&]() noexcept { allocator.deallocate(buffer, *length); });
+    map_iri(run, std::span<char>(buffer, *length));
+    return parse(std::string_view(buffer, *length));
 }
 
 }  // namespace webcpp::formats::detail

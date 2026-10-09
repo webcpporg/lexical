@@ -40,14 +40,22 @@
 
 namespace {
 
-// The calls of the global operator new this program has made. It is mutable global state, which
-// no library holds: it is this test program's own instrument, the one place where the replaced
-// operator new below can record what it sees.
-std::size_t global_new_calls = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+// The calls of the global operator new this program has made, and of operator delete on memory
+// it gave. They are mutable global state, which no library holds: this test program's own
+// instruments, the one place where the replaced operators below can record what they see. A
+// direct call of malloc, calloc or realloc is not counted: interposing them is outside this
+// test, as the plan's ruling on SRELL's allocations decided, and formats calls none of them.
+std::size_t global_new_calls = 0;     // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+std::size_t global_delete_calls = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 /** The calls of the global operator new so far. */
 std::size_t global_allocations() {
     return global_new_calls;
+}
+
+/** The calls of the global operator delete on memory it was given, so far. */
+std::size_t global_deallocations() {
+    return global_delete_calls;
 }
 
 }  // namespace
@@ -71,11 +79,13 @@ BOOST_NOINLINE void* operator new(std::size_t size) {
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 BOOST_NOINLINE void operator delete(void* memory) noexcept {
+    global_delete_calls += memory != nullptr ? 1 : 0;
     std::free(memory);
 }
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 BOOST_NOINLINE void operator delete(void* memory, std::size_t /*size*/) noexcept {
+    global_delete_calls += memory != nullptr ? 1 : 0;
     std::free(memory);
 }
 
@@ -128,12 +138,14 @@ BOOST_NOINLINE void* operator new(std::size_t size, std::align_val_t alignment) 
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 BOOST_NOINLINE void operator delete(void* memory, std::align_val_t /*alignment*/) noexcept {
+    global_delete_calls += memory != nullptr ? 1 : 0;
     free_aligned_memory(memory);
 }
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 BOOST_NOINLINE void operator delete(void* memory, std::size_t /*size*/,
                                     std::align_val_t /*alignment*/) noexcept {
+    global_delete_calls += memory != nullptr ? 1 : 0;
     free_aligned_memory(memory);
 }
 
@@ -269,8 +281,8 @@ void hosts_allocate_nothing() {
 
 /**
  IRIs allocate nothing for ASCII and up to 1,024 mapped octets, and beyond them one buffer from the
- resource given, else one call of the global operator new through the default resource; templates
- allocate nothing, 100,000 expressions included.
+ resource given, else one call of the global operator new through the default resource, each given
+ back; templates allocate nothing, 100,000 expressions included.
 */
 void iris_and_templates_allocate_within_their_bounds() {
     std::string within = "a:";
@@ -290,6 +302,7 @@ void iris_and_templates_allocate_within_their_bounds() {
     }
     webcpp::test::counting_resource resource;
     const std::size_t before = global_allocations();
+    const std::size_t released = global_deallocations();
     BOOST_TEST(webcpp::formats::is_iri(within));
     BOOST_TEST(webcpp::formats::is_iri(long_ascii));
     BOOST_TEST(webcpp::formats::is_iri_reference("//\xC6\x92\xC3\xB8\xC3\xB8.example/"));
@@ -302,6 +315,8 @@ void iris_and_templates_allocate_within_their_bounds() {
     BOOST_TEST_EQ(global_allocations() - before, 1U);
     BOOST_TEST(webcpp::formats::is_iri_reference(beyond));
     BOOST_TEST_EQ(global_allocations() - before, 2U);
+    // Each buffer is given back, the default resource's as the given one's.
+    BOOST_TEST_EQ(global_deallocations() - released, 2U);
 }
 
 }  // namespace

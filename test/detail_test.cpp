@@ -5,15 +5,18 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // The terminals every format shares: strict UTF-8 decoding (RFC 3629), the ASCII character
-// sets, RFC 3987's code point classes, and the small rules exactly<N> and ci_literal_rule.
+// sets, RFC 3987's code point classes, and the small rules exactly<N>, ci_literal_rule and
+// repeat_rule.
 
 #include <webcpp/formats/detail/charsets.hpp>
 #include <webcpp/formats/detail/rules.hpp>
 #include <webcpp/formats/detail/utf8.hpp>
 
 #include <boost/core/lightweight_test.hpp>
+#include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
 #include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/tuple_rule.hpp>
 
 #include <array>
 #include <cstddef>
@@ -257,6 +260,38 @@ void ci_literal_matches_in_any_case() {
     }
 }
 
+/** Checks that `rule` matches `match`, a prefix of `text`, and stops after it. */
+template <class Rule>
+void repeats_to(const Rule& rule, std::string_view text, std::string_view match) {
+    char const* it = text.data();
+    const auto r = rule.parse(it, text.data() + text.size());
+    if (!BOOST_TEST(r.has_value() && r.unsafe_value() == match)) {
+        std::cerr << "repeat_rule: \"" << text << "\"\n";
+    }
+    BOOST_TEST(it == text.data() + match.size());
+}
+
+void repeat_matches_from_least_to_most() {
+    // A digit, then ",digit" pairs: one to three repetitions in all.
+    constexpr auto pair =
+        urlg::tuple_rule(urlg::squelch(urlg::delim_rule(',')), urlg::delim_rule(urlg::digit_chars));
+    constexpr auto list = detail::repeat_rule(urlg::delim_rule(urlg::digit_chars), pair, 1, 3);
+    repeats_to(list, "1", "1");
+    repeats_to(list, "1,2x", "1,2");
+    repeats_to(list, "1,2,3,4", "1,2,3");  // stops before a fourth
+    repeats_to(list, "1,x", "1");          // the broken repetition is given back
+    repeats_to(list, "1,", "1");
+    constexpr auto any = detail::repeat_rule(urlg::delim_rule(urlg::digit_chars), pair);
+    repeats_to(any, "x", "");
+    repeats_to(any, "", "");
+    for (const std::string_view refused : {"x", "", ",1"}) {
+        char const* it = refused.data();
+        const auto r = list.parse(it, refused.data() + refused.size());
+        BOOST_TEST(r.has_error() && r.error() == urlg::error::mismatch);
+        BOOST_TEST(it == refused.data());
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -271,5 +306,6 @@ int main() {
     the_template_sets_hold_their_grammars();
     exactly_matches_its_count_or_leaves_the_input();
     ci_literal_matches_in_any_case();
+    repeat_matches_from_least_to_most();
     return boost::report_errors();
 }

@@ -96,12 +96,13 @@ inline result<boost::urls::url_view> uri_reference_rule_t::parse(char const*& it
  parsed by Boost.URL's `parse_uri`.
 
  A non-ASCII code point must be well-formed UTF-8 and in `ucschar`, or `iprivate` in the query;
- the bidirectional formatting characters are refused anywhere (RFC 3987 4.1). Each octet of a
- non-ASCII code point maps to `%XX`, which RFC 3986 allows where RFC 3987 allows `ucschar`, so a
- non-ASCII scheme, port or IP literal is refused. The rule takes the run up to the first byte no
- IRI holds (an ASCII control, the space, the double quote, the less-than and greater-than signs,
- the backslash, the circumflex, the grave accent, the braces or the vertical bar) and validates it
- whole; it never matches a shorter prefix.
+ the bidirectional formatting characters are refused anywhere (RFC 3987 4.1), and so is any
+ non-ASCII code point inside an IP literal, whose RFC 6874 zone identifier would otherwise take
+ its `%XX`. Each octet of a non-ASCII code point maps to `%XX`, which RFC 3986 allows elsewhere
+ where RFC 3987 allows `ucschar`, so a non-ASCII scheme or port is refused too. The rule takes the
+ run up to the first byte no IRI holds (an ASCII control, the space, the double quote, the less-than
+ and greater-than signs, the backslash, the circumflex, the grave accent, the braces or the vertical
+ bar) and validates it whole; it never matches a shorter prefix.
 
  @see "URIs and IRIs", in the guide.
 */

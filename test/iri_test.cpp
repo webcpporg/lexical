@@ -63,6 +63,7 @@ void corner_probes() {
     iri("http://[v1.x]/", true);
     // RFC 6874's zone id: Boost.URL's verdict, which formats keeps (the page's known deviations).
     iri("http://[::1%25eth0]/", true);
+    iri("http://[::1%25%C3%A9]/", true);
     iri("http://a/\xC3", false);
     iri("http://a/\xC0\xAF", false);
     iri("http://a/\xED\xA0\x80", false);
@@ -84,6 +85,15 @@ void non_ascii_only_where_rfc_3986_has_pct_encoded() {
     iri("h\xC3\xA9:x", false);           // a scheme
     iri("http://a:8\xC3\xA9/", false);   // a port
     iri("http://[::\xC3\xA9]/", false);  // an IP literal
+    // RFC 6874's ZoneID is unreserved or pct-encoded, and RFC 3987 adds no ucschar to an IP
+    // literal: a raw non-ASCII zone id is no IRI, though its %XX would be a zone id Boost.URL
+    // takes.
+    iri("http://[::1%25\xC3\xA9]/", false);
+    reference("//[::1%25\xC3\xA9]/", false);
+    reference("//u@[::1%25e\xC3\xA9]:80/p", false);
+    iri("http://[v1.\xC3\xA9]/", false);  // IPvFuture
+    iri("http://\xC3\xA9@[::1]/\xC3\xA9?\xC3\xA9", true);
+    iri("http://[::1]/\xC3\xA9", true);
     iri("http://\xC3\xA9@\xC3\xA9/\xC3\xA9?\xC3\xA9#\xC3\xA9", true);
     reference("//\xC6\x92\xC3\xB8\xC3\xB8.\xC3\x9F\xC3\xA5r/?\xE2\x88\x82", true);
     iri(std::string_view("http://a/\0", 10), false);

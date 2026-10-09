@@ -16,8 +16,10 @@
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
 #include <boost/url/grammar/error.hpp>
+#include <boost/url/grammar/parse.hpp>
 
 #include <cstddef>
+#include <limits>
 #include <string_view>
 
 namespace webcpp::formats::detail {
@@ -84,6 +86,60 @@ public:
 private:
     std::string_view literal_;
 };
+
+/**
+ A rule that matches `first`, then `next` as often as it matches, from `least` to `most` matches
+ in all, and yields the text: Boost.URL's range_rule for a grammar that validates.
+
+ Tip: range_rule yields a type-erased range, built through a virtual call for every repetition it
+ ends, which costs a template about 30 ns per variable; this one keeps no value of its parts.
+*/
+template <class First, class Next>
+struct repeat_rule_t {
+    /** The rule yields the text it matched. */
+    using value_type = grammar::text;
+
+    /** The first repetition's rule. */
+    First first;
+    /** Every later repetition's rule. */
+    Next next;
+    /** The fewest repetitions that match. */
+    std::size_t least = 0;
+    /** The most repetitions the rule takes; it stops before another. */
+    std::size_t most = std::numeric_limits<std::size_t>::max();
+
+    /** Matches the repetitions at `it`, or leaves `it` and answers mismatch when too few match. */
+    grammar::result<grammar::text> parse(char const*& it, char const* end) const noexcept {
+        char const* const start = it;
+        std::size_t count = 0;
+        if (most > 0 && boost::urls::grammar::parse(it, end, first)) {
+            ++count;
+            while (count < most) {
+                char const* const before = it;
+                if (!boost::urls::grammar::parse(it, end, next)) {
+                    it = before;
+                    break;
+                }
+                ++count;
+            }
+        } else {
+            it = start;
+        }
+        if (count < least) {
+            it = start;
+            return boost::urls::grammar::error::mismatch;
+        }
+        return grammar::text(start, static_cast<std::size_t>(it - start));
+    }
+};
+
+/** The rule that matches `first`, then `next`, from `least` to `most` times in all. */
+template <class First, class Next>
+constexpr repeat_rule_t<First, Next> repeat_rule(
+    const First& first, const Next& next, std::size_t least = 0,
+    std::size_t most = std::numeric_limits<std::size_t>::max()) noexcept {
+    return repeat_rule_t<First, Next>{first, next, least, most};
+}
 
 }  // namespace webcpp::formats::detail
 

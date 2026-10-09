@@ -41,7 +41,9 @@ holds only what is specific to formats.
 - **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:
-  a `%XX` is valid exactly where RFC 3987 allows `ucschar`. The mapped copy
+  a `%XX` is valid exactly where RFC 3987 allows `ucschar`, but in an IP
+  literal, where Boost.URL takes it for an RFC 6874 zone identifier, so
+  formats refuses a non-ASCII code point there itself. The mapped copy
   is the one allocation of formats' validators but `is_regex`'s, and only
   beyond 1,024 mapped octets; an ASCII IRI is never copied.
 - **Boost.URL's compiled part.** `/webcpp//boost_url`, which `build.jam`

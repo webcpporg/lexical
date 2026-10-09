@@ -15,6 +15,7 @@
 #include <webcpp/formats/config.hpp>
 
 #include <webcpp/formats/detail/charsets.hpp>
+#include <webcpp/formats/detail/rules.hpp>
 #include <webcpp/formats/detail/utf8.hpp>
 #include <webcpp/formats/grammar.hpp>
 
@@ -94,7 +95,8 @@ inline grammar::result<grammar::text> template_literals_rule_t::parse(
 }
 
 // RFC 6570 2.2 and 2.3's expression, written with Boost.URL's combinators, one rule per
-// production; a nested rule reaches a range_rule through ref, so the range keeps it inline.
+// production, and repeat_rule where the ABNF repeats: it yields text where range_rule would build a
+// type-erased range for every varname, prefix and variable list.
 
 /** varchar's run: letters, digits, "_" and pct-encoded triplets, at least one. */
 inline constexpr auto varchars_rule =
@@ -105,15 +107,14 @@ inline constexpr auto dotted_varchars_rule =
     urlg::tuple_rule(urlg::squelch(urlg::delim_rule('.')), varchars_rule);
 
 /** varname = varchar *( ["."] varchar ). */
-inline constexpr auto varname_rule =
-    urlg::range_rule(urlg::ref(varchars_rule), urlg::ref(dotted_varchars_rule), 1);
+inline constexpr auto varname_rule = repeat_rule(varchars_rule, dotted_varchars_rule, 1);
 
 /** One decimal digit. */
 inline constexpr auto digit_rule = urlg::delim_rule(urlg::digit_chars);
 
 /** max-length = %x31-39 0*3DIGIT: 1 to 9999, no leading zero. */
 inline constexpr auto max_length_rule = urlg::tuple_rule(
-    urlg::delim_rule(urlg::lut_chars("123456789")), urlg::range_rule(urlg::ref(digit_rule), 0, 3));
+    urlg::delim_rule(urlg::lut_chars("123456789")), repeat_rule(digit_rule, digit_rule, 0, 3));
 
 /** modifier-level4 = prefix / explode, where prefix = ":" max-length and explode = "*". */
 inline constexpr auto modifier_rule = urlg::variant_rule(
@@ -128,11 +129,10 @@ inline constexpr auto next_varspec_rule =
     urlg::tuple_rule(urlg::squelch(urlg::delim_rule(',')), varspec_rule);
 
 /** expression = "{" [ operator ] variable-list "}", variable-list = varspec *( "," varspec ). */
-inline constexpr auto expression_shape =
-    urlg::tuple_rule(urlg::squelch(urlg::delim_rule('{')),
-                     urlg::optional_rule(urlg::delim_rule(template_operator_chars)),
-                     urlg::range_rule(urlg::ref(varspec_rule), urlg::ref(next_varspec_rule), 1),
-                     urlg::squelch(urlg::delim_rule('}')));
+inline constexpr auto expression_shape = urlg::tuple_rule(
+    urlg::squelch(urlg::delim_rule('{')),
+    urlg::optional_rule(urlg::delim_rule(template_operator_chars)),
+    repeat_rule(varspec_rule, next_varspec_rule, 1), urlg::squelch(urlg::delim_rule('}')));
 
 /**
  RFC 6570's expression as a terminal of the template: mismatch when no "{" is there, invalid when
@@ -208,8 +208,10 @@ struct uri_template_rule_t {
 inline constexpr uri_template_rule_t uri_template_rule{};
 
 // parse reads no member, yet stays a const member: Boost.URL's Rule concept calls it on the rule.
-// Nothing escapes it: Boost.URL's variant_rule dereferences an alternative's result only once it
-// holds a value, which the analysis cannot see.
+// Nothing escapes it, which the analysis cannot see: the one throw it finds is result::value(),
+// whose system_error comes only from a result that holds an error, and Boost.URL's variant_rule
+// and optional_rule read a result through operator* only after testing it; no range_rule here
+// leaves any_rule's inline buffer, so nothing allocates either.
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static,bugprone-exception-escape)
 inline result<text> uri_template_rule_t::parse(char const*& it, char const* end) const noexcept {
     char const* const first = it;
