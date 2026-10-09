@@ -115,8 +115,8 @@ constexpr std::optional<std::size_t> mapped_length(std::string_view run) noexcep
         if (!decode_utf8(run, i, cp) || is_bidi_format(cp)) {
             return std::nullopt;
         }
-        // RFC 3987 takes its IP literal from RFC 3986, ASCII alone, and RFC 6874's ZoneID is
-        // unreserved or pct-encoded: mapped, a non-ASCII zone id would pass for a pct-encoded one.
+        // RFC 3987 takes its IP literal from RFC 3986, ASCII alone: a non-ASCII code point there
+        // is refused before anything is mapped.
         if (start > parts.literal && start < parts.authority_end) {
             return std::nullopt;
         }

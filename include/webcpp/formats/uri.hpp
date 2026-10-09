@@ -43,10 +43,11 @@ namespace grammar {
 /**
  The rule of RFC 3986 3's URI: Boost.URL's `uri_rule`, then a guard.
 
- Boost.URL 1.92 accepts "[" and "]" in a query, which RFC 3986 holds only around an IP literal, and
- "#" in a fragment, which RFC 3986 3.5 refuses there, and stops a URI at an authority that holds
- two at signs; the guard refuses each with `error::invalid`. Otherwise the rule yields
- Boost.URL's `url_view` of the URI, and stops where Boost.URL's rule does.
+ Boost.URL 1.92 accepts "[" and "]" in a query, which RFC 3986 holds only around an IP literal,
+ "#" in a fragment, which RFC 3986 3.5 refuses there, and RFC 6874's zone identifier in an IP
+ literal, which RFC 9844 withdrew, and stops a URI at an authority that holds two at signs; the
+ guard refuses each with `error::invalid`. Otherwise the rule yields Boost.URL's `url_view` of
+ the URI, and stops where Boost.URL's rule does.
 
  @see "URIs and IRIs", in the guide.
 */
@@ -82,7 +83,8 @@ inline result<boost::urls::url_view> uri_rule_t::parse(char const*& it,
     // Read with unsafe_value: the result holds a value here, and operator* may throw.
     const boost::urls::url_view view = uri.unsafe_value();
     if (detail::refuses_authority_before_segment(view, it, end) ||
-        detail::refuses_bracket_in_query(view) || detail::refuses_number_sign_in_fragment(view)) {
+        detail::refuses_bracket_in_query(view) || detail::refuses_number_sign_in_fragment(view) ||
+        detail::refuses_zone_identifier(view)) {
         it = first;
         return detail::urlg::error::invalid;
     }
@@ -95,10 +97,10 @@ inline result<boost::urls::url_view> uri_rule_t::parse(char const*& it,
  Boost.URL 1.92 accepts a relative reference whose path after the authority is not
  `path-abempty` (RFC 3986 4.2), as `//example.com:abc/p`, whose port is not a number, and an
  authority that holds two at signs; with a scheme, it stops the URI at that authority. It also
- accepts "[" and "]" in a query, which RFC 3986 holds only around an IP literal, and "#" in a
- fragment, which RFC 3986 3.5 refuses there. The guard refuses each with `error::invalid`.
- Otherwise the rule yields Boost.URL's `url_view` of the reference, and stops where Boost.URL's
- rule does.
+ accepts "[" and "]" in a query, which RFC 3986 holds only around an IP literal, "#" in a
+ fragment, which RFC 3986 3.5 refuses there, and RFC 6874's zone identifier in an IP literal,
+ which RFC 9844 withdrew. The guard refuses each with `error::invalid`. Otherwise the rule yields
+ Boost.URL's `url_view` of the reference, and stops where Boost.URL's rule does.
 
  @see "URIs and IRIs", in the guide.
 */
@@ -136,7 +138,8 @@ inline result<boost::urls::url_view> uri_reference_rule_t::parse(char const*& it
     const boost::urls::url_view view = reference.unsafe_value();
     if (detail::refuses_relative_authority_path(view) ||
         detail::refuses_authority_before_segment(view, it, end) ||
-        detail::refuses_bracket_in_query(view) || detail::refuses_number_sign_in_fragment(view)) {
+        detail::refuses_bracket_in_query(view) || detail::refuses_number_sign_in_fragment(view) ||
+        detail::refuses_zone_identifier(view)) {
         it = first;
         return detail::urlg::error::invalid;
     }
@@ -149,11 +152,11 @@ inline result<boost::urls::url_view> uri_reference_rule_t::parse(char const*& it
 
  A non-ASCII code point must be well-formed UTF-8 and in `ucschar`, or `iprivate` in the query;
  the bidirectional formatting characters are refused anywhere (RFC 3987 4.1), and so is any
- non-ASCII code point inside an IP literal, whose RFC 6874 zone identifier would otherwise take
- its `%XX`. Each octet of a non-ASCII code point maps to `%XX`, which RFC 3986 allows elsewhere
- where RFC 3987 allows `ucschar`, so a non-ASCII scheme or port is refused too. The rule takes the
- run up to the first byte no IRI holds (an ASCII control, the space, the double quote, the less-than
- and greater-than signs, the backslash, the circumflex, the grave accent, the braces or the vertical
+ non-ASCII code point inside an IP literal, which RFC 3987 takes from RFC 3986, ASCII alone. Each
+ octet of a non-ASCII code point maps to `%XX`, which RFC 3986 allows elsewhere where RFC 3987
+ allows `ucschar`, so a non-ASCII scheme or port is refused too. The rule takes the run up to the
+ first byte no IRI holds (an ASCII control, the space, the double quote, the less-than and
+ greater-than signs, the backslash, the circumflex, the grave accent, the braces or the vertical
  bar) and validates it whole; it never matches a shorter prefix.
 
  @see "URIs and IRIs", in the guide.

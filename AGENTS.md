@@ -58,6 +58,14 @@ holds only what is specific to formats.
   configured Boost refuses it itself, and the guard then leaves in a change
   of its own, with a changelog line, while
   `one_number_sign_before_the_fragment` stays.
+- **The zone guard.** Boost.URL 1.92's IP literal takes RFC 6874's zone
+  identifier (`boost/url/rfc/detail/impl/ipv6_addrz_rule.hpp`), which RFC
+  9844 withdrew from RFC 3986's syntax in 2025 when it obsoleted RFC 6874.
+  `refuses_zone_identifier` refuses it in formats' `uri_rule` and
+  `uri_reference_rule`, wired beside the fragment guard. `uri_test`'s
+  `boost_url_still_takes_a_zone_identifier` fails the day the configured
+  Boost refuses one itself, and the guard then leaves in a change of its
+  own, with a changelog line, while `no_zone_identifier` stays.
 - **What formats keeps of Boost.URL.** Compared with RFC 3986's ABNF, one
   verdict of Boost.URL 1.92 is stricter than RFC 3986, which formats keeps,
   as it never loosens Boost.URL: an `IPvFuture` led by an uppercase `V`
@@ -68,8 +76,8 @@ holds only what is specific to formats.
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:
   a `%XX` is valid exactly where RFC 3987 allows `ucschar`, but in an IP
-  literal, where Boost.URL takes it for an RFC 6874 zone identifier, so
-  formats refuses a non-ASCII code point there itself. The mapped copy
+  literal, ASCII alone, where formats refuses a non-ASCII code point itself,
+  before anything is mapped. The mapped copy
   is the one allocation of formats' validators but `is_regex`'s, and only
   beyond 1,024 mapped octets; an ASCII IRI is never copied.
 - **Boost.URL's compiled part.** `/webcpp//boost_url`, which `build.jam`

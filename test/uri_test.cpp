@@ -5,8 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // RFC 3986's URI and URI reference through Boost.URL: section 1.1.2's examples, the guard's inputs
-// refused (and the same with a scheme), alone and inside a larger grammar, a bracket in a query
-// and a number sign in a fragment refused, the zone id and IPvFuture verdicts Boost.URL gives, and
+// refused (and the same with a scheme), alone and inside a larger grammar, a bracket in a query,
+// a number sign in a fragment and a zone id refused, the IPvFuture verdict Boost.URL gives, and
 // pins of Boost.URL's own reading of what the guard refuses, each failing the day a Boost release
 // fixes it, when its part of the guard can leave.
 
@@ -207,11 +207,37 @@ void boost_url_still_needs_the_guard() {
     }
 }
 
-void zone_ids_keep_boost_urls_verdict() {
-    // RFC 6874's zone id, which Boost.URL accepts and the suite does not test (the page's
-    // "Known deviations").
-    uri("http://[fe80::1%25eth0]/", true);
-    reference("//[fe80::1%25eth0]/", true);
+void no_zone_identifier() {
+    // RFC 3986 3.2.2's IP-literal holds an IPv6address or an IPvFuture, and no zone identifier:
+    // RFC 9844 obsoleted RFC 6874, which had added one, and reverted its change to RFC 3986.
+    // Boost.URL 1.92 takes RFC 6874's.
+    constexpr std::array<std::string_view, 5> refused{
+        "http://[fe80::1%25eth0]/",     //
+        "http://[::1%25a]:80/p?q#f",    //
+        "http://u@[fe80::1%25%41]/",    // a percent-encoded zone identifier
+        "http://[::ffff:1.2.3.4%251]",  // after an IPv4 tail
+        "urn://[::1%25x]",              //
+    };
+    for (const std::string_view text : refused) {
+        uri(text, false);
+        reference(text, false);
+    }
+    reference("//[fe80::1%25eth0]/", false);
+    reference("//[::1%25x]", false);
+    uri("http://[fe80::1]/", true);
+    uri("http://[::ffff:1.2.3.4]/%25", true);  // "%25" outside the IP literal
+    uri("http://%25@h/?%25#%25", true);
+    reference("//[::1]/%25", true);
+}
+
+void boost_url_still_takes_a_zone_identifier() {
+    // When this fails, Boost.URL refuses it itself, and the zone guard may leave in a change of its
+    // own, with a changelog line; no_zone_identifier stays.
+    const auto u = boost::urls::parse_uri("http://[fe80::1%25eth0]/");
+    if (BOOST_TEST(u.has_value())) {
+        BOOST_TEST_EQ(u->encoded_host(), "[fe80::1%25eth0]");
+    }
+    BOOST_TEST(boost::urls::parse_uri_reference("//[::1%25x]").has_value());
 }
 
 void ipvfuture_keeps_boost_urls_verdict() {
@@ -269,6 +295,9 @@ void the_rule_inside_a_grammar() {
     const auto u = fg::uri_rule.parse(in_uri, bracket.data() + bracket.size());
     BOOST_TEST(u.has_error() && u.error() == urlg::error::invalid);
     BOOST_TEST(in_uri == bracket.data());
+    // A zone identifier, which Boost.URL's rule would hold in the IP literal.
+    invalid_inside_a_grammar("http://[::1%25x]/ rest");
+    invalid_inside_a_grammar("//[::1%25x] rest");
     // A second number sign, which Boost.URL's rule would hold in the fragment.
     invalid_inside_a_grammar("http://a/#x#y rest");
     invalid_inside_a_grammar("#x#y rest");
@@ -330,7 +359,8 @@ int main() {
     boost_url_still_takes_a_number_sign_in_a_fragment();
     boost_url_still_takes_brackets_in_a_query();
     boost_url_still_needs_the_guard();
-    zone_ids_keep_boost_urls_verdict();
+    no_zone_identifier();
+    boost_url_still_takes_a_zone_identifier();
     ipvfuture_keeps_boost_urls_verdict();
     the_rule_inside_a_grammar();
     return boost::report_errors();

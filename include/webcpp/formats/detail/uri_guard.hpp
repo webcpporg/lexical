@@ -14,7 +14,10 @@
 // refuses them (test/uri_test.cpp, boost_url_still_takes_brackets_in_a_query).
 // refuses_number_sign_in_fragment covers its fragment characters, which hold "#" (the same file,
 // fragment_chars); it leaves with the first Boost release that refuses it (test/uri_test.cpp,
-// boost_url_still_takes_a_number_sign_in_a_fragment).
+// boost_url_still_takes_a_number_sign_in_a_fragment). refuses_zone_identifier covers its IP
+// literal, which takes RFC 6874's zone identifier (boost/url/rfc/detail/ipv6_addrz_rule.hpp); it
+// leaves with the first Boost release that refuses one (test/uri_test.cpp,
+// boost_url_still_takes_a_zone_identifier).
 
 #ifndef WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
 #define WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
@@ -22,6 +25,7 @@
 #include <webcpp/formats/config.hpp>
 
 #include <boost/core/detail/string_view.hpp>
+#include <boost/url/host_type.hpp>
 #include <boost/url/rfc/pchars.hpp>
 #include <boost/url/url_view.hpp>
 
@@ -72,6 +76,17 @@ inline bool refuses_bracket_in_query(boost::urls::url_view u) noexcept {
 */
 inline bool refuses_number_sign_in_fragment(boost::urls::url_view u) noexcept {
     return u.has_fragment() && u.encoded_fragment().contains('#');
+}
+
+/**
+ True when a reference's IP literal holds a zone identifier, which RFC 3986 3.2.2 refuses: its
+ IP-literal is an IPv6address or an IPvFuture, and the "%" of a zone identifier is neither.
+
+ Tip: RFC 6874 added one to RFC 3986's IP-literal, which Boost.URL 1.92 takes; RFC 9844 obsoleted
+ RFC 6874 and reverted that change.
+*/
+inline bool refuses_zone_identifier(boost::urls::url_view u) noexcept {
+    return u.host_type() == boost::urls::host_type::ipv6 && u.encoded_host().contains('%');
 }
 
 }  // namespace webcpp::formats::detail
