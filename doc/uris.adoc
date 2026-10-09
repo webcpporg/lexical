@@ -20,6 +20,23 @@ relative reference whose path after an authority is neither empty nor led by
 `/`, and `uri_reference_rule` refuses both forms alike with `error::invalid`.
 The guard stays until a Boost release refuses those references itself.
 
+`is_iri` and `is_iri_reference` check RFC 3987's IRI and IRI reference,
+which allow non-ASCII code points, by mapping the IRI to a URI as RFC 3987
+3.1 says and handing it to Boost.URL. Each non-ASCII code point must be
+well-formed UTF-8 and in `ucschar`, or in `iprivate` within the query; the
+bidirectional formatting characters U+200E, U+200F and U+202A to U+202E are
+refused anywhere, as RFC 3987 4.1 requires. Each octet of a non-ASCII code
+point then becomes `%XX`, which RFC 3986 allows exactly where RFC 3987 allows
+`ucschar`, so a non-ASCII code point in a scheme, a port or an IP literal is
+refused by Boost.URL. No IDNA is involved: an IRI's host is a registered
+name of any `ucschar`.
+
+The mapped URI needs contiguous storage. An ASCII IRI is parsed as it is,
+never copied; a non-ASCII one is mapped into a buffer of 1,024 octets on the
+stack, which holds any IRI of up to 341 octets; a longer one takes one buffer
+of its mapped length from the memory resource given to
+`is_iri(s, resource)`, or from `std::pmr::get_default_resource()`.
+
 A zone identifier of RFC 6874, `http://[fe80::1%25eth0]/`, is valid, as
 Boost.URL says: RFC 3986 alone has no zone identifiers, and JSON Schema's
 suite does not test one (the appendix "Known deviations").

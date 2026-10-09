@@ -38,6 +38,12 @@ holds only what is specific to formats.
   Boost does, and `refuses_relative_authority_path` then leaves in a change
   of its own, with a changelog line, while `refuses_authority_before_segment`,
   `the_guard` and `the_rule_inside_a_grammar` stay.
+- **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
+  what RFC 3987 adds, the non-ASCII code points and where they may be, then
+  maps each of their octets to `%XX` and lets Boost.URL judge the structure:
+  a `%XX` is valid exactly where RFC 3987 allows `ucschar`. The mapped copy
+  is the one allocation of formats' validators but `is_regex`'s, and only
+  beyond 1,024 mapped octets; an ASCII IRI is never copied.
 - **Boost.URL's compiled part.** `/webcpp//boost_url`, which `build.jam`
   names, builds Boost.URL from Boost's sources for every target: `ipv4_address`
   is defined there. On MSVC, which never defines

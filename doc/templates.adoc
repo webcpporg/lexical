@@ -1,0 +1,17 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-templates]
+== URI templates
+
+`is_uri_template` checks RFC 6570's URI Template of any level, without
+expanding it: literals, and expressions in braces with an optional operator
+and comma-separated variables, each with a prefix length of 1 to 9999 or an
+explode `*`. Erratum 6937, verified in 2022, makes the apostrophe a literal,
+as JSON Schema's suite expects. The operators RFC 6570 reserves for future
+use, the equals sign, the comma, the exclamation mark, the at sign and the
+vertical bar, are accepted, as its ABNF accepts them. A literal may be a
+`ucschar` or `iprivate` code point, so a template of an IRI is valid too.

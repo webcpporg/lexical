@@ -15,6 +15,7 @@
 #include <webcpp/formats/ip.hpp>
 #include <webcpp/formats/json_pointer.hpp>
 #include <webcpp/formats/uri.hpp>
+#include <webcpp/formats/uri_template.hpp>
 #include <webcpp/formats/uuid.hpp>
 
 #include <boost/config.hpp>
@@ -266,6 +267,43 @@ void hosts_allocate_nothing() {
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
+/**
+ IRIs allocate nothing for ASCII and up to 1,024 mapped octets, and beyond them one buffer from the
+ resource given, else one call of the global operator new through the default resource; templates
+ allocate nothing, 100,000 expressions included.
+*/
+void iris_and_templates_allocate_within_their_bounds() {
+    std::string within = "a:";
+    for (int i = 0; i < 168; ++i) {
+        within += "\xC3\xA9";
+    }
+    within += "\xE2\x82\xAC";
+    std::string long_ascii = "http://example.com/";
+    long_ascii.append(1'000'000, 'a');
+    std::string beyond = "http://a/";
+    for (int i = 0; i < 100'000; ++i) {
+        beyond += "\xC3\xA9";
+    }
+    std::string long_template;
+    for (int i = 0; i < 100'000; ++i) {
+        long_template += "{+v:12}/x";
+    }
+    webcpp::test::counting_resource resource;
+    const std::size_t before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_iri(within));
+    BOOST_TEST(webcpp::formats::is_iri(long_ascii));
+    BOOST_TEST(webcpp::formats::is_iri_reference("//\xC6\x92\xC3\xB8\xC3\xB8.example/"));
+    BOOST_TEST(webcpp::formats::is_uri_template(long_template));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+    BOOST_TEST(webcpp::formats::is_iri(beyond, resource));
+    BOOST_TEST_EQ(resource.allocations, 1U);
+    BOOST_TEST_EQ(resource.bytes, 9U + 600'000U);
+    BOOST_TEST_EQ(resource.deallocations, 1U);
+    BOOST_TEST_EQ(global_allocations() - before, 1U);
+    BOOST_TEST(webcpp::formats::is_iri_reference(beyond));
+    BOOST_TEST_EQ(global_allocations() - before, 2U);
+}
+
 }  // namespace
 
 int main() {
@@ -278,5 +316,6 @@ int main() {
     identifiers_allocate_nothing();
     uris_allocate_nothing();
     hosts_allocate_nothing();
+    iris_and_templates_allocate_within_their_bounds();
     return boost::report_errors();
 }

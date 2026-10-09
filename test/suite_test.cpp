@@ -69,6 +69,8 @@ constexpr std::array validators{
     mapping{"hostname", [](std::string_view s) { return formats::is_hostname(s); }},
     mapping{"ipv4", [](std::string_view s) { return formats::is_ipv4(s); }},
     mapping{"ipv6", [](std::string_view s) { return formats::is_ipv6(s); }},
+    mapping{"iri", [](std::string_view s) { return formats::is_iri(s); }},
+    mapping{"iri-reference", [](std::string_view s) { return formats::is_iri_reference(s); }},
     mapping{"json-pointer", [](std::string_view s) { return formats::is_json_pointer(s); }},
     mapping{
         "relative-json-pointer",
@@ -77,6 +79,7 @@ constexpr std::array validators{
     mapping{"time", [](std::string_view s) { return formats::is_time(s); }},
     mapping{"uri", [](std::string_view s) { return formats::is_uri(s); }},
     mapping{"uri-reference", [](std::string_view s) { return formats::is_uri_reference(s); }},
+    mapping{"uri-template", [](std::string_view s) { return formats::is_uri_template(s); }},
     mapping{"uuid", [](std::string_view s) { return formats::is_uuid(s); }},
 };
 
@@ -88,10 +91,7 @@ constexpr std::array validators{
 constexpr auto pending = std::to_array<std::string_view>({
     "idn-email",
     "idn-hostname",
-    "iri",
-    "iri-reference",
     "regex",
-    "uri-template",
 });
 
 /** A format whose validator depends on the dialect, by the policy that dialect's text cites. */

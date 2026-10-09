@@ -34,6 +34,12 @@ webcpp.run uri : uri_test.cpp ;
 # Host names, with their A-labels judged by idna, and e-mail addresses.
 webcpp.run hostname : hostname_test.cpp ;
 webcpp.run email : email_test.cpp ;
+# IRIs, mapped to URIs for Boost.URL, and URI templates.
+webcpp.run iri : iri_test.cpp ;
+# A resource that refuses: is_iri propagates its std::bad_alloc, caught on
+# purpose, so the program is built with exceptions whatever the build asks.
+webcpp.run iri_resource : iri_resource_test.cpp : <exception-handling>on ;
+webcpp.run uri_template : uri_template_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;

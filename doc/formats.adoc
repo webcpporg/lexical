@@ -30,6 +30,8 @@ include::addresses.adoc[]
 
 include::uris.adoc[]
 
+include::templates.adoc[]
+
 include::errors.adoc[]
 
 include::testing.adoc[]
