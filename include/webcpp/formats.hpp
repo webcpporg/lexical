@@ -18,5 +18,7 @@
 
 #include <webcpp/formats/date_time.hpp>
 #include <webcpp/formats/grammar.hpp>
+#include <webcpp/formats/json_pointer.hpp>
+#include <webcpp/formats/uuid.hpp>
 
 #endif  // WEBCPP_FORMATS_HPP

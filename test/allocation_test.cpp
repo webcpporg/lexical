@@ -10,6 +10,8 @@
 // given.
 
 #include <webcpp/formats/date_time.hpp>
+#include <webcpp/formats/json_pointer.hpp>
+#include <webcpp/formats/uuid.hpp>
 
 #include <boost/config.hpp>
 #include <boost/core/lightweight_test.hpp>
@@ -214,6 +216,19 @@ void dates_and_times_allocate_nothing() {
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
+/** UUIDs and JSON Pointers allocate nothing, a pointer of 100,000 tokens included. */
+void identifiers_allocate_nothing() {
+    std::string pointer;
+    for (int i = 0; i < 100'000; ++i) {
+        pointer += "/\xC3\xA9~0";
+    }
+    const std::size_t before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_json_pointer(pointer));
+    BOOST_TEST(webcpp::formats::is_relative_json_pointer("2/highly/nested/objects"));
+    BOOST_TEST(webcpp::formats::is_uuid("2eb8aa08-aa98-11ea-b4aa-73b441d16380"));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+}
+
 }  // namespace
 
 int main() {
@@ -223,5 +238,6 @@ int main() {
     exhaustion_throws_bad_alloc();
 #endif
     dates_and_times_allocate_nothing();
+    identifiers_allocate_nothing();
     return boost::report_errors();
 }

@@ -1,0 +1,25 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-identifiers]
+== Identifiers
+
+`is_uuid` checks RFC 9562's string form of a UUID: 32 hexadecimal digits in
+either case, in groups of 8, 4, 4, 4 and 12 joined by hyphens. It checks the
+shape, not the version or the variant, as JSON Schema's suite asks; braces
+and the `urn:uuid:` prefix are not part of the form.
+
+`is_json_pointer` checks RFC 6901's JSON Pointer: the empty string, or
+reference tokens each led by `/`, in which `~` is followed by `0` or `1`. A
+token holds any other code point, NUL included, so the string is decoded as
+UTF-8 and must be well-formed.
+
+`is_relative_json_pointer` checks the relative JSON Pointer of
+draft-handrews-relative-json-pointer-01, which drafts 2019-09, 2020-12 and v1
+of JSON Schema cite: a non-negative integer without a leading zero, then `#`
+or a JSON Pointer. The draft's later revisions add an index manipulation
+(`0+1`), which no published draft of JSON Schema asks for, and which is
+invalid here.

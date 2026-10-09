@@ -20,6 +20,6 @@ b2 toolset=emscripten libs/formats/test
 
 Its {n-tests} tests are unit tests with Boost's lightweight_test: each
 public header compiled alone, the configuration macro compiled twice, the
-terminals every format shares, and what each validator allocates. The test
-matrix of every lane is published at
+terminals every format shares, the cases of each format, and what each
+validator allocates. The test matrix of every lane is published at
 https://webcpporg.github.io/webcpp/report/.

@@ -24,6 +24,8 @@ include::introduction.adoc[]
 
 include::dates.adoc[]
 
+include::identifiers.adoc[]
+
 include::errors.adoc[]
 
 include::testing.adoc[]

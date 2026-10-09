@@ -24,6 +24,9 @@ webcpp.compile config_developer_defined : config_test.cpp
 webcpp.run detail : detail_test.cpp ;
 # RFC 3339's dates, times and durations.
 webcpp.run date_time : date_time_test.cpp ;
+# The identifiers: UUIDs, and JSON Pointers, absolute and relative.
+webcpp.run uuid : uuid_test.cpp ;
+webcpp.run json_pointer : json_pointer_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;
