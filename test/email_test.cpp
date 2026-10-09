@@ -6,11 +6,14 @@
 
 // E-mail addresses, RFC 5321 4.1.2's Mailbox: each production and its refusal, the local part at
 // 64 and 65 octets, address literals in either case of their tag, a General-address-literal
-// refused, and the rule inside a larger grammar.
+// refused, and the rule inside a larger grammar; and RFC 6531 3.3's internationalized Mailbox, its
+// UTF-8 local part, its domain judged by idna, and its length as written.
 
 #include <webcpp/formats/email.hpp>
 
 #include <webcpp/idna/errors.hpp>
+#include <webcpp/idna/options.hpp>
+#include <webcpp/idna/uts46.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/error.hpp>
@@ -230,6 +233,131 @@ void a_refusal_leaves_the_iterator() {
     BOOST_TEST(at == refused.data());
 }
 
+void idn(std::string_view text, bool valid) {
+    if (!BOOST_TEST_EQ(formats::is_idn_email(text), valid)) {
+        std::cerr << "idn-email: \"" << text << "\"\n";
+    }
+    BOOST_TEST_EQ(formats::is_idn_email(text), urlg::parse(text, fg::idn_email_rule).has_value());
+}
+
+void idn_mailboxes() {
+    constexpr std::array<std::string_view, 11> valid{
+        // U+C2E4 U+B840, at, U+C2E4 U+B840, then U+D14C U+C2A4 U+D2B8.
+        "\xEC\x8B\xA4\xEB\xA1\x80@\xEC\x8B\xA4\xEB\xA1\x80.\xED\x85\x8C\xEC\x8A\xA4\xED\x8A\xB8",
+        // Greek letters in a Dot-string, then in a Quoted-string.
+        "\xCE\xB4\xCE\xBF\xCE\xBA\xCE\xB9\xCE\xBC\xCE\xAE@example.com",
+        "\"\xCE\xB4\xCE\xBF\xCE\xBA\xCE\xB9\xCE\xBC\xCE\xAE\"@example.com",
+        // e and COMBINING ACUTE ACCENT: the domain is normalized, the local part kept as it is.
+        "user@cafe\xCC\x81.com",
+        "cafe\xCC\x81@example.com",
+        // A C1 control, a noncharacter and a code point beyond the BMP: UTF8-non-ascii all.
+        "\xC2\x85@example.com",
+        "\xEF\xBF\xBF@example.com",
+        "\xF0\x9D\x95\x8F@example.com",
+        "a@\xC3\xA9.org",
+        "a@[IPv6:::1]",
+        "joe.bloggs@example.com",
+    };
+    for (const std::string_view text : valid) {
+        idn(text, true);
+    }
+    constexpr std::array<std::string_view, 13> invalid{
+        // FULLWIDTH COMMERCIAL AT is no at sign.
+        "user\xEF\xBC\xA0"
+        "example.com",
+        // A lead byte without its continuation.
+        "a\xC3@example.com",
+        "\xCE\xB4@-example.com",
+        "\xCE\xB4@example.com.",
+        "\xCE\xB4@.example.com",
+        "\xCE\xB4@example..com",
+        "\xCE\xB4@",
+        // MIDDLE DOT not between two l (CONTEXTO).
+        "a@b\xC2\xB7"
+        "c.example",
+        // An R-LDH label.
+        "a@ab--cd.example",
+        // quoted-pairSMTP stays ASCII.
+        "\"a\\\xC3\xA9\"@example.com",
+        // A quoted-pair of a lead byte alone, and of a continuation byte alone.
+        "\"a\\\xC3\"@example.com",
+        "\"a\\\xA9\"@example.com",
+        "2962",
+    };
+    for (const std::string_view text : invalid) {
+        idn(text, false);
+    }
+    std::string local32;
+    for (int i = 0; i < 32; ++i) {
+        local32 += "\xC3\xA9";
+    }
+    idn(local32 + "@example.com", true);
+    idn(local32 + "a@example.com", false);
+}
+
+/**
+ An internationalized Mailbox of 254 octets as written, in UTF-8, and of 255: the length is the
+ written form's, whatever the domain's ASCII form measures.
+*/
+void idn_mailboxes_at_254_and_255_octets() {
+    std::string local;
+    for (int i = 0; i < 32; ++i) {
+        local += "\xC3\xA9";  // 64 octets
+    }
+    // Twelve labels of LATIN SMALL LETTER U WITH DIAERESIS, each "xn--tda" in its ASCII form,
+    // then ASCII labels: 189 octets as written, 249 in the ASCII form.
+    std::string domain;
+    for (int i = 0; i < 12; ++i) {
+        domain += "\xC3\xBC.";
+    }
+    domain += std::string(63, 'a') + "." + std::string(63, 'a') + "." + std::string(25, 'a');
+    BOOST_TEST_EQ(domain.size(), 189U);
+    std::array<char, webcpp::idna::max_domain_length> ascii{};
+    const auto converted = webcpp::idna::to_ascii(ascii, domain);
+    BOOST_TEST(converted.has_value() && converted.value() == 249U);
+    const std::string mailbox = local + "@" + domain;
+    BOOST_TEST_EQ(mailbox.size(), 254U);
+    // Its ASCII form would be 314 octets.
+    idn(mailbox, true);
+    BOOST_TEST(formats::is_idn_hostname(domain + "a"));
+    idn(mailbox + "a", false);
+    // FULLWIDTH LATIN SMALL LETTER A, three octets as written and one in the ASCII form: 254 and
+    // 255 octets as written, 130 and 131 in the ASCII form.
+    std::string fullwidth;
+    for (int i = 0; i < 62; ++i) {
+        fullwidth += "\xEF\xBD\x81";
+    }
+    const std::string written254 = std::string(64, 'a') + "@" + fullwidth + ".aa";
+    BOOST_TEST_EQ(written254.size(), 254U);
+    idn(written254, true);
+    idn(written254 + "a", false);
+    // Inside a grammar, the rule refuses the whole Mailbox rather than match a prefix of it.
+    const std::string longer = mailbox + "a>rest";
+    char const* it = longer.data();
+    const auto r = fg::idn_email_rule.parse(it, longer.data() + longer.size());
+    BOOST_TEST(r.has_error() && r.error() == urlg::error::invalid);
+    BOOST_TEST(it == longer.data());
+}
+
+/** The domain's refusal is idna's own error, and leaves the iterator where it was. */
+void an_idn_domain_refused_by_idna() {
+    const std::string_view refused =
+        "\xCE\xB4@a\xC2\xB7"
+        "b.example>rest";
+    char const* it = refused.data();
+    const auto r = fg::idn_email_rule.parse(it, refused.data() + refused.size());
+    BOOST_TEST(r.has_error() && r.error() == webcpp::idna::error::contexto);
+    BOOST_TEST(it == refused.data());
+    const std::string_view matched =
+        "\xCE\xB4@b\xC3\xBC"
+        "cher.example>rest";
+    char const* at = matched.data();
+    const auto m = fg::idn_email_rule.parse(at, matched.data() + matched.size());
+    BOOST_TEST(m.has_value() && *m ==
+                                    "\xCE\xB4@b\xC3\xBC"
+                                    "cher.example");
+}
+
 }  // namespace
 
 int main() {
@@ -243,5 +371,8 @@ int main() {
     the_rule_stops_and_reports();
     the_local_part_rule();
     a_refusal_leaves_the_iterator();
+    idn_mailboxes();
+    idn_mailboxes_at_254_and_255_octets();
+    an_idn_domain_refused_by_idna();
     return boost::report_errors();
 }

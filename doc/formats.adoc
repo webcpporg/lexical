@@ -32,6 +32,8 @@ include::uris.adoc[]
 
 include::templates.adoc[]
 
+include::composing.adoc[]
+
 include::errors.adoc[]
 
 include::testing.adoc[]

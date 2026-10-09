@@ -40,6 +40,8 @@ webcpp.run iri : iri_test.cpp ;
 # purpose, so the program is built with exceptions whatever the build asks.
 webcpp.run iri_resource : iri_resource_test.cpp : <exception-handling>on ;
 webcpp.run uri_template : uri_template_test.cpp ;
+# formats' rules composed with Boost.URL's combinators.
+webcpp.run grammar : grammar_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given.
 webcpp.run allocation : allocation_test.cpp ;

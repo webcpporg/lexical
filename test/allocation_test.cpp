@@ -319,6 +319,26 @@ void iris_and_templates_allocate_within_their_bounds() {
     BOOST_TEST_EQ(global_deallocations() - released, 2U);
 }
 
+/** Internationalized names and addresses allocate nothing: idna works in fixed storage. */
+void idn_allocates_nothing() {
+    std::string long_idn;
+    for (int i = 0; i < 4; ++i) {
+        long_idn +=
+            "b\xC3\xBC"
+            "cher.";
+    }
+    long_idn += "example";
+    std::string hostile(100'000, 'a');
+    hostile += "\xC3\xBC";
+    const std::size_t before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_idn_hostname(long_idn));
+    BOOST_TEST(!webcpp::formats::is_idn_hostname(hostile));
+    BOOST_TEST(
+        webcpp::formats::is_idn_email("\xCE\xB4@b\xC3\xBC"
+                                      "cher.example"));
+    BOOST_TEST_EQ(global_allocations() - before, 0U);
+}
+
 }  // namespace
 
 int main() {
@@ -332,5 +352,6 @@ int main() {
     uris_allocate_nothing();
     hosts_allocate_nothing();
     iris_and_templates_allocate_within_their_bounds();
+    idn_allocates_nothing();
     return boost::report_errors();
 }

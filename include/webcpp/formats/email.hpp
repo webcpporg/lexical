@@ -5,8 +5,9 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- E-mail addresses, RFC 5321's Mailbox, as a validator and a Boost.URL rule composed of Boost.URL's
- combinators over formats' terminals and Boost.URL's IP rules.
+ E-mail addresses, RFC 5321's Mailbox and RFC 6531's internationalized one, as validators and
+ Boost.URL rules composed of Boost.URL's combinators over formats' terminals and Boost.URL's IP
+ rules.
 
  @see "Addresses", in the guide.
 */
@@ -173,6 +174,10 @@ struct local_part_rule_t {
 /** RFC 5321's Local-part. */
 inline constexpr local_part_rule_t local_part_rule{};
 
+/** RFC 6531 3.3's Local-part: atext and qtextSMTP with UTF8-non-ascii; quoted-pairSMTP stays ASCII.
+ */
+inline constexpr local_part_rule_t idn_local_part_rule{true};
+
 /**
  RFC 5321 4.1.3's address-literal: "[" IPv4-address-literal "]" or "[IPv6:" IPv6-addr "]", the tag
  in any case.
@@ -267,6 +272,43 @@ inline result<text> email_rule_t::parse(char const*& it, char const* end) const 
     return detail::parse_mailbox(it, end, detail::local_part_rule, hostname_rule);
 }
 
+/**
+ The rule of RFC 6531 3.3's internationalized Mailbox: @ref email_rule with UTF-8 in the local part
+ and an internationalized domain.
+
+ `atext` and `qtextSMTP` also hold any well-formed non-ASCII UTF-8 sequence (RFC 6532 3.1, C1
+ controls and noncharacters included), `quoted-pairSMTP` stays ASCII, the local part is at most 64
+ octets and is not normalized; the domain is @ref idn_hostname_rule, whose error, idna's, the rule
+ returns as it is, or an address literal. The whole Mailbox is at most 254 octets as written, in
+ UTF-8, the form an SMTPUTF8 envelope carries, whatever its domain's ASCII form measures.
+
+ @see "Addresses", in the guide.
+*/
+struct idn_email_rule_t {
+    /** The rule yields the text it matched. */
+    using value_type = text;
+
+    /**
+     Matches an internationalized Mailbox at `it`.
+
+     @param it The start of the input: past the match on success, else unchanged.
+     @param end The end of the input.
+     @return The text matched; `error::mismatch` when no local part starts at `it`;
+     `error::invalid` when the rest breaks the grammar or the Mailbox is longer than 254 octets;
+     idna's error when idna refuses the domain.
+    */
+    [[nodiscard]] result<text> parse(char const*& it, char const* end) const noexcept;
+};
+
+/** The rule of RFC 6531's Mailbox. */
+inline constexpr idn_email_rule_t idn_email_rule{};
+
+// A const member, as Boost.URL's Rule concept declares parse, though it reads no member.
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+inline result<text> idn_email_rule_t::parse(char const*& it, char const* end) const noexcept {
+    return detail::parse_mailbox(it, end, detail::idn_local_part_rule, idn_hostname_rule);
+}
+
 }  // namespace grammar
 
 /**
@@ -278,6 +320,17 @@ inline result<text> email_rule_t::parse(char const*& it, char const* end) const 
 */
 [[nodiscard]] inline bool is_email(std::string_view s) noexcept {
     return detail::urlg::parse(s, grammar::email_rule).has_value();
+}
+
+/**
+ Whether `s` is an RFC 6531 internationalized Mailbox, JSON Schema's `idn-email`.
+
+ @param s Any byte string.
+ @return `parse(s, grammar::idn_email_rule).has_value()`.
+ @see "Addresses", in the guide.
+*/
+[[nodiscard]] inline bool is_idn_email(std::string_view s) noexcept {
+    return detail::urlg::parse(s, grammar::idn_email_rule).has_value();
 }
 
 }  // namespace webcpp::formats

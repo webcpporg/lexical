@@ -6,17 +6,24 @@
 
 // Host names: RFC 1123 2.1's labels and lengths at 63/64 and 253/254, A-labels in either case
 // judged as idn-hostname judges them, R-LDH labels, and the A-labels of strings IDNA2008 refuses
-// that an IDNA library was measured accepting.
+// that an IDNA library was measured accepting; and internationalized host names, UTS 46's mapping
+// and IDNA2008's validity through idna, their lengths, and where their rules stop and why.
 
 #include <webcpp/formats/hostname.hpp>
 
 #include <webcpp/idna/errors.hpp>
+#include <webcpp/idna/options.hpp>
+#include <webcpp/idna/uts46.hpp>
 
 #include <boost/core/lightweight_test.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -184,6 +191,236 @@ void a_refusal_leaves_the_iterator() {
     }
 }
 
+void idn_hostname(std::string_view text, bool valid) {
+    if (!BOOST_TEST_EQ(formats::is_idn_hostname(text), valid)) {
+        std::cerr << "idn-hostname: \"" << text << "\"\n";
+    }
+    BOOST_TEST_EQ(formats::is_idn_hostname(text),
+                  urlg::parse(text, fg::idn_hostname_rule).has_value());
+}
+
+/**
+ Names each invalid by a rule of IDNA2008 that an IDNA library was measured missing: DISALLOWED
+ exceptions, CONTEXTO, the Bidi rule across labels, a decoded A-label's derived property.
+*/
+void names_idna2008_refuses() {
+    constexpr std::array<std::string_view, 15> refused{
+        // U+C2E4, U+302E HANGUL SINGLE DOT TONE MARK, U+B840, then U+D14C U+C2A4 U+D2B8.
+        "\xEC\x8B\xA4\xE3\x80\xAE\xEB\xA1\x80.\xED\x85\x8C\xEC\x8A\xA4\xED\x8A\xB8",
+        // ARABIC TATWEEL and NKO LAJANYALAN, DISALLOWED exceptions (RFC 5892 2.6).
+        "\xD9\x80\xDF\xBA",
+        // The vertical kana repeat marks and U+302E, U+302F, U+303B, DISALLOWED exceptions.
+        "\xE3\x80\xB1\xE3\x80\xB2\xE3\x80\xB3\xE3\x80\xB4\xE3\x80\xB5\xE3\x80\xAE\xE3\x80\xAF"
+        "\xE3\x80\xBB",
+        // MIDDLE DOT not between two l (CONTEXTO, RFC 5892 A.3).
+        "a\xC2\xB7l",
+        "\xC2\xB7l",
+        "l\xC2\xB7"
+        "a",
+        "l\xC2\xB7",
+        // GREEK LOWER NUMERAL SIGN before no Greek letter (A.4).
+        "\xCE\xB1\xCD\xB5S",
+        "\xCE\xB1\xCD\xB5",
+        // HEBREW PUNCTUATION GERESH and GERSHAYIM after no Hebrew letter (A.5, A.6).
+        "\xD7\xB3\xD7\x91",
+        "\xD7\xB4\xD7\x91",
+        // KATAKANA MIDDLE DOT in a label of no Hiragana, Katakana or Han (A.9).
+        "def\xE3\x83\xBB"
+        "abc",
+        "\xE3\x83\xBB",
+        // A European digit first, then a label of HEBREW LETTER ALEF: the Bidi rule across labels.
+        "0a.\xD7\x90",
+        // An A-label whose decoded code point IDNA2008 does not allow.
+        "xn--7a",
+    };
+    for (const std::string_view text : refused) {
+        idn_hostname(text, false);
+    }
+}
+
+void idn_host_names() {
+    constexpr std::array<std::string_view, 17> valid{
+        // U+C2E4 U+B840, then U+D14C U+C2A4 U+D2B8.
+        "\xEC\x8B\xA4\xEB\xA1\x80.\xED\x85\x8C\xEC\x8A\xA4\xED\x8A\xB8",
+        "b\xC3\xBC"
+        "cher.example",
+        // An A-label in capital letters, which UTS 46 maps to lowercase.
+        "xn--NXASMQ6B",
+        // FULLWIDTH DIGIT ONE, TWO and THREE, mapped to ASCII digits.
+        "\xEF\xBC\x91\xEF\xBC\x92\xEF\xBC\x93",
+        // ZERO WIDTH SPACE, which UTS 46 ignores.
+        "a\xE2\x80\x8B"
+        "b",
+        // MIDDLE DOT between two l.
+        "l\xC2\xB7l",
+        // GREEK LOWER NUMERAL SIGN before a Greek letter.
+        "\xCE\xB1\xCD\xB5\xCE\xB2",
+        // HEBREW PUNCTUATION GERESH after a Hebrew letter.
+        "\xD7\x90\xD7\xB3\xD7\x91",
+        // KATAKANA MIDDLE DOT beside HIRAGANA LETTER SMALL A.
+        "\xE3\x83\xBB\xE3\x81\x81",
+        // ARABIC-INDIC DIGIT ZERO between two ARABIC LETTER BEH.
+        "\xD8\xA8\xD9\xA0\xD8\xA8",
+        // IDEOGRAPHIC FULL STOP, FULLWIDTH FULL STOP and HALFWIDTH IDEOGRAPHIC FULL STOP: dots.
+        "a\xE3\x80\x82"
+        "b",
+        "a\xEF\xBC\x8E"
+        "b",
+        "a\xEF\xBD\xA1"
+        "b",
+        // FULLWIDTH x and n before "--": an A-label once mapped.
+        "\xEF\xBD\x98\xEF\xBD\x8E--nxasmq6b",
+        // e and COMBINING ACUTE ACCENT, not in NFC, which UTS 46 normalizes.
+        "cafe\xCC\x81.com",
+        "hostname",
+        "1host",
+    };
+    for (const std::string_view text : valid) {
+        idn_hostname(text, true);
+    }
+    constexpr std::array<std::string_view, 12> invalid{
+        "",
+        ".",
+        "example.",
+        // A trailing IDEOGRAPHIC FULL STOP: an empty root label.
+        "example\xE3\x80\x82",
+        "a..b",
+        "-hello",
+        "hello-",
+        // An R-LDH label.
+        "ab--cd.example",
+        // A lead byte without its continuation: ill-formed UTF-8.
+        "b\xC3"
+        "cher.example",
+        // DEVANAGARI KA, ZERO WIDTH JOINER, DEVANAGARI SSA: the joiner after no virama (CONTEXTJ).
+        "\xE0\xA4\x95\xE2\x80\x8D\xE0\xA4\xB7",
+        // Punycode that does not decode.
+        "xn--example-",
+        "xn---9uc",
+    };
+    for (const std::string_view text : invalid) {
+        idn_hostname(text, false);
+    }
+    // R-LDH: a host name (RFC 1123), never an internationalized one (RFC 5890 2.3.1).
+    BOOST_TEST(formats::is_hostname("ab--cd.example"));
+    // A host name's labels are judged one by one; an IDN's Bidi rule spans its labels.
+    BOOST_TEST(formats::is_hostname("0a.xn--4db"));
+    idn_hostname(std::string_view("b\xC3\xBC"
+                                  "cher\0.example",
+                                  16),
+                 false);
+    // The page's side-by-side table.
+    idn_hostname("0a.xn--4db", false);
+    idn_hostname("xn--nxasmq6b.example", true);
+}
+
+void idn_lengths() {
+    // "xn--" and 59 octets of Punycode, from 55 "a" and one "u" with diaeresis: 63 octets, the
+    // limit; one more "a" makes 64 (Python's punycode codec gives the same lengths).
+    idn_hostname(std::string(55, 'a') + "\xC3\xBC", true);
+    idn_hostname(std::string(56, 'a') + "\xC3\xBC", false);
+    idn_hostname(std::string(64, 'a'), false);
+    idn_hostname(std::string(63, 'a') + "." + std::string(63, 'a') + "." + std::string(63, 'a') +
+                     "." + std::string(61, 'a'),
+                 true);
+}
+
+/** Matches `text` with `rule`, and checks the error and that the iterator stayed. */
+template <class Rule>
+void refuses(const Rule& rule, std::string_view text, boost::system::error_code expected) {
+    char const* it = text.data();
+    const auto r = rule.parse(it, text.data() + text.size());
+    if (!BOOST_TEST(r.has_error() && r.error() == expected)) {
+        std::cerr << "refused for another reason: \"" << text << "\"\n";
+    }
+    BOOST_TEST(it == text.data());
+}
+
+/** Where the IDN rules stop, and why they refuse: no run, or idna's error, the iterator kept. */
+void the_idn_rules_stop_and_report() {
+    namespace idna = webcpp::idna;
+    const std::string_view text =
+        "b\xC3\xBC"
+        "cher.example:8080";
+    char const* it = text.data();
+    const auto host = fg::idn_hostname_rule.parse(it, text.data() + text.size());
+    BOOST_TEST(host.has_value() && *host ==
+                                       "b\xC3\xBC"
+                                       "cher.example");
+    char const* at = text.data();
+    const auto label = fg::idna_label_rule.parse(at, text.data() + text.size());
+    BOOST_TEST(label.has_value() && *label ==
+                                        "b\xC3\xBC"
+                                        "cher");
+    refuses(fg::idn_hostname_rule, ":80", urlg::error::mismatch);
+    refuses(fg::idn_hostname_rule, "", urlg::error::mismatch);
+    refuses(fg::idna_label_rule, ".example", urlg::error::mismatch);
+    refuses(fg::idna_label_rule, "\xE3\x80\x82whole", urlg::error::mismatch);
+    refuses(fg::idn_hostname_rule, "a..b:80", idna::error::empty_label);
+    refuses(fg::idn_hostname_rule, "-a.example/", idna::error::hyphen_at_start_or_end);
+    refuses(fg::idn_hostname_rule, "b\xC3:80", idna::error::invalid_utf8);
+    refuses(fg::idna_label_rule, "a\xC2\xB7l.example", idna::error::contexto);
+    refuses(fg::idn_hostname_rule, "0a.\xD7\x90", idna::error::bidi);
+    // A label of 100,000 octets stops at idna's working storage, rather than be processed.
+    std::string hostile(100'000, 'a');
+    hostile += "\xC3\xBC";
+    refuses(fg::idn_hostname_rule, hostile, idna::error::label_too_long);
+    refuses(fg::idna_label_rule, hostile, idna::error::label_too_long);
+    // ONE DOT LEADER and SMALL FULL STOP, which IDNA2003 mapped to a dot, are disallowed: only
+    // the three separators the label's run stops at map to one.
+    refuses(fg::idna_label_rule,
+            "a\xE2\x80\xA4"
+            "b",
+            idna::error::disallowed);
+    refuses(fg::idna_label_rule,
+            "a\xEF\xB9\x92"
+            "b",
+            idna::error::disallowed);
+}
+
+/** The UTF-8 of `cp`, a scalar value. */
+std::string utf8_of(char32_t cp) {
+    std::string out;
+    if (cp < 0x800U) {
+        out += static_cast<char>(0xC0U | (cp >> 6U));
+    } else if (cp < 0x10000U) {
+        out += static_cast<char>(0xE0U | (cp >> 12U));
+        out += static_cast<char>(0x80U | ((cp >> 6U) & 0x3FU));
+    } else {
+        out += static_cast<char>(0xF0U | (cp >> 18U));
+        out += static_cast<char>(0x80U | ((cp >> 12U) & 0x3FU));
+        out += static_cast<char>(0x80U | ((cp >> 6U) & 0x3FU));
+    }
+    out += static_cast<char>(0x80U | (cp & 0x3FU));
+    return out;
+}
+
+/**
+ The three separators a label's run stops at are the only code points UTS 46 maps to a sequence
+ holding a dot, in idna's tables: so a label the rule accepts is one label.
+*/
+void only_the_three_separators_map_to_a_dot() {
+    constexpr std::array<char32_t, 3> separators{0x3002, 0xFF0E, 0xFF61};
+    std::size_t found = 0;
+    for (char32_t cp = 0x80; cp <= 0x10FFFF; ++cp) {
+        if (cp >= 0xD800 && cp <= 0xDFFF) {
+            continue;
+        }
+        std::array<char, webcpp::idna::max_domain_length> ascii{};
+        const auto converted = webcpp::idna::to_ascii(ascii, "a" + utf8_of(cp) + "b");
+        if (!converted ||
+            std::string_view(ascii.data(), converted.value()).find('.') == std::string_view::npos) {
+            continue;
+        }
+        ++found;
+        if (!BOOST_TEST(std::ranges::find(separators, cp) != separators.end())) {
+            std::cerr << "maps to a dot: U+" << std::hex << static_cast<std::uint32_t>(cp)
+                      << std::dec << "\n";
+        }
+    }
+    BOOST_TEST_EQ(found, separators.size());
+}
+
 }  // namespace
 
 int main() {
@@ -195,5 +432,10 @@ int main() {
     a_labels_at_63_and_64_octets();
     the_rule_stops_and_reports();
     a_refusal_leaves_the_iterator();
+    names_idna2008_refuses();
+    idn_host_names();
+    idn_lengths();
+    the_idn_rules_stop_and_report();
+    only_the_three_separators_map_to_a_dot();
     return boost::report_errors();
 }

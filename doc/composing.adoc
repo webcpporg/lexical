@@ -1,0 +1,52 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-composing]
+== Composing rules
+
+Every format but `regex` is also a Boost.URL rule, in
+`webcpp::formats::grammar`: an object whose type `<name>_rule_t` is public,
+so a rule that takes a parameter, `time_rule_t{leap_seconds::refused}`, is
+spelled without a factory. A rule yields the text it matched, as a
+`grammar::text`; `uri_reference_rule` yields Boost.URL's `url_view`. `ipv4`,
+`ipv6` and `uri` are Boost.URL's own rules, `boost::urls::ipv4_address_rule`,
+`ipv6_address_rule` and `uri_rule`.
+
+A rule composes with Boost.URL's combinators, `tuple_rule`, `variant_rule`,
+`optional_rule`, `range_rule`, into a grammar of a program's own: an
+internationalized host and an optional port, `bücher.example:8080`, are
+`tuple_rule(idn_hostname_rule, optional_rule(tuple_rule(squelch(delim_rule(':')),
+unsigned_rule<std::uint16_t>{})))`, which yields the host's text and the port's
+number. Where a rule stops inside a longer input is part of its contract:
+
+[%header,cols="2,5"]
+|===
+| Rule | Stops
+| the ASCII rules | where their grammar does
+| `hostname_rule` | at the first character outside letters, digits, `-` and `.`
+| `idn_hostname_rule` | at the first ASCII character outside letters, digits, `-` and `.`; every non-ASCII byte belongs to the name, since UTS 46 may map it
+| `idna_label_rule` | as `idn_hostname_rule`, and also at `.`, U+3002, U+FF0E and U+FF61
+| `email_rule`, `idn_email_rule` | where the domain or the address literal does
+| `json_pointer_rule` | at the end of the input: a token holds every other character
+|===
+
+Each validates the text it took and fails as a whole rather than match a
+shorter prefix, and a rule that fails leaves its input where it was.
+`idna_label_rule` is a terminal of formats' own that asks `webcpp::idna` for
+its verdict, so a grammar joins labels with separators of its own.
+
+An internationalized rule's error is idna's, the `idna::error` that refused
+the name (<<formats-errors>>), but only where nothing discards it: Boost.URL's
+`variant_rule` answers `mismatch` when every alternative fails, whatever
+each one said. formats' e-mail rules look for `[` themselves rather than
+make the domain an alternative, so that idna's reason reaches the caller; a
+grammar that needs that reason does the same.
+
+Two facts of Boost.URL shape a composition. A `range_rule` over a rule
+larger than 128 bytes keeps it in a pool of Boost.URL's own, which
+allocates: pass such a rule through `boost::urls::grammar::ref`, as formats
+does. And `parse` of a whole string fails with `error::leftover` when the
+rule stops early, which is how a validator refuses trailing input.

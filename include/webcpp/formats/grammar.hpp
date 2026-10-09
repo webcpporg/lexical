@@ -7,7 +7,7 @@
 /**
  The two types every rule of formats shares: the text a rule matched, and what a rule returns.
 
- @see "Errors", in the guide.
+ @see "Composing rules", in the guide.
 */
 #ifndef WEBCPP_FORMATS_GRAMMAR_HPP
 #define WEBCPP_FORMATS_GRAMMAR_HPP
@@ -24,7 +24,7 @@ namespace webcpp::formats::grammar {
 
  It is Boost.URL's text type, which converts to `std::string_view`.
 
- @see "Errors", in the guide.
+ @see "Composing rules", in the guide.
 */
 using text = boost::core::string_view;
 

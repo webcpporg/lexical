@@ -34,6 +34,36 @@ Bidi rule across the labels of a name, section 2, is checked only by
 `0a.` and a Hebrew letter, is no internationalized host name. The two
 formats differ here by that decision, as they do on R-LDH labels.
 
+[#formats-idn-hostnames]
+=== Internationalized host names
+
+`is_idn_hostname` checks a host name that may hold any script, by UTS 46's
+processing and IDNA2008's validity, through idna's `to_ascii` with
+its default options (link:{webcpp-libs}/idna/{webcpp-page}#idna-introduction[idna's
+strict profile]). The name is mapped as UTS 46 says, so fullwidth digits, an
+ignored U+200B, a name not in NFC and the ideographic full stop U+3002 are
+valid where IDNA2008 accepts the result; then every label must be valid in
+IDNA2008, CONTEXTO and the Bidi rule across the labels included, and the
+name fit DNS's lengths in its ASCII form: labels of at most 63 octets, the
+name at most 253, and no trailing dot. An R-LDH label such as `+ab--cd+` is
+a host name and not an internationalized one, and the Bidi rule spans an
+internationalized name's labels where `is_hostname` judges each A-label
+alone. The two formats side by side:
+
+[%header,cols="3,2,2"]
+|===
+| String | `is_hostname` | `is_idn_hostname`
+| `+ab--cd.example+` | valid | invalid
+| `+0a.xn--4db+` | valid | invalid
+| `0a.` and HEBREW LETTER ALEF | invalid | invalid
+| `+xn--nxasmq6b.example+` | valid | valid
+| `bücher.example` | invalid | valid
+|===
+
+A refused name's reason is idna's: the rule answers the `idna::error` that
+`to_ascii` returned, `contexto` for a middle dot outside `l·l`, `bidi` for
+`0a.` and a Hebrew letter.
+
 [#formats-email]
 === E-mail addresses
 
@@ -60,4 +90,15 @@ Its address literal is a composition of Boost.URL's combinators,
 `variant_rule` alternative: the rule looks for `[` and then asks the
 literal's rule or `hostname_rule`, so that the reason a host name was
 refused, idna's for an A-label, reaches the caller; Boost.URL's
-`variant_rule` answers `mismatch` when every alternative fails.
+`variant_rule` answers `mismatch` when every alternative fails. A grammar of a
+program's own composes formats' rules the same way (<<formats-composing>>).
+
+`is_idn_email` checks RFC 6531's internationalized Mailbox: the local part
+may hold any well-formed non-ASCII UTF-8, C1 controls and noncharacters
+included, and is not normalized; the domain is an internationalized host
+name or an address literal. A quoted pair stays ASCII. Its lengths are those
+of the Mailbox as written, in UTF-8: the local part at most 64 octets and the
+whole at most 254, the form an SMTPUTF8 envelope carries (RFC 6531 extends
+RFC 5321's Mailbox without changing its limits, which RFC 5321 counts in
+octets), whatever the domain's ASCII form measures; the domain also fits
+DNS's lengths in its ASCII form, as `is_idn_hostname` asks.

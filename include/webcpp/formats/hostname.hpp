@@ -5,8 +5,8 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 /**
- Host names, RFC 1123's with their A-labels judged by webcpp::idna, as a validator and a Boost.URL
- rule.
+ Host names, RFC 1123's and internationalized ones, with their A-labels and their Unicode judged by
+ webcpp::idna, as validators and Boost.URL rules.
 
  @see "Addresses", in the guide.
 */
@@ -16,9 +16,11 @@
 #include <webcpp/formats/config.hpp>
 
 #include <webcpp/formats/detail/charsets.hpp>
+#include <webcpp/formats/detail/idn_scan.hpp>
 #include <webcpp/formats/grammar.hpp>
 
 #include <webcpp/idna/options.hpp>
+#include <webcpp/idna/uts46.hpp>
 #include <webcpp/idna/validity.hpp>
 
 #include <boost/system/error_code.hpp>
@@ -114,6 +116,26 @@ inline boost::system::error_code check_hostname(std::string_view name) noexcept 
     return {};
 }
 
+/**
+ Matches the IDN run of `kind` at `it` when `webcpp::idna::to_ascii`, with its default options,
+ accepts it whole: mismatch when no run starts there, else idna's error.
+*/
+inline grammar::result<grammar::text> parse_idn_run(char const*& it, char const* end,
+                                                    idn_run kind) noexcept {
+    char const* const last = scan_idn_run(it, end, kind);
+    if (last == it) {
+        return urlg::error::mismatch;
+    }
+    const std::string_view run(it, static_cast<std::size_t>(last - it));
+    std::array<char, idna::max_domain_length> ascii{};
+    if (const auto converted = idna::to_ascii(ascii, run); !converted) {
+        return converted.error();
+    }
+    char const* const first = it;
+    it = last;
+    return grammar::text(first, run.size());
+}
+
 }  // namespace detail
 
 namespace grammar {
@@ -168,6 +190,74 @@ inline result<text> hostname_rule_t::parse(char const*& it, char const* end) con
     return text(first, name.size());
 }
 
+/**
+ The rule of an internationalized host name: UTS 46's processing and IDNA2008's validity, through
+ `webcpp::idna::to_ascii`.
+
+ idna's default options: UTS 46's mapping, nontransitional, every check, the DNS lengths, and
+ IDNA2008's stricter validity (CONTEXTO, NV8 and XV8 refused). So fullwidth digits, an ignored
+ U+200B, a name not in NFC and the dots U+3002, U+FF0E and U+FF61 are valid where IDNA2008 allows
+ the result. It takes the run up to the first ASCII byte outside letters, digits, `-` and `.`
+ (every non-ASCII byte belongs to it, since UTS 46 may map it) and validates it whole.
+
+ @see "Addresses", in the guide.
+*/
+struct idn_hostname_rule_t {
+    /** The rule yields the text it matched. */
+    using value_type = text;
+
+    /**
+     Matches an internationalized host name at `it`.
+
+     @param it The start of the input: past the match on success, else unchanged.
+     @param end The end of the input.
+     @return The text matched; `error::mismatch` when no name's byte is at `it`; else idna's error
+     when idna refuses the run.
+    */
+    [[nodiscard]] result<text> parse(char const*& it, char const* end) const noexcept;
+};
+
+/**
+ The rule of one label of an internationalized host name, a terminal of formats' own that asks
+ `webcpp::idna` for its verdict.
+
+ The run stops also at `.`, U+3002, U+FF0E and U+FF61, so a grammar composes labels with its own
+ separators. The label is checked as @ref idn_hostname_rule checks a name of one label.
+
+ @see "Composing rules", in the guide.
+*/
+struct idna_label_rule_t {
+    /** The rule yields the text it matched. */
+    using value_type = text;
+
+    /**
+     Matches one internationalized label at `it`.
+
+     @param it The start of the input: past the match on success, else unchanged.
+     @param end The end of the input.
+     @return The text matched; `error::mismatch` when no label starts at `it`; else idna's error.
+    */
+    [[nodiscard]] result<text> parse(char const*& it, char const* end) const noexcept;
+};
+
+/** The rule of an internationalized host name. */
+inline constexpr idn_hostname_rule_t idn_hostname_rule{};
+
+/** The rule of one internationalized label. */
+inline constexpr idna_label_rule_t idna_label_rule{};
+
+// A const member, as Boost.URL's Rule concept declares parse, though it reads no member.
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+inline result<text> idn_hostname_rule_t::parse(char const*& it, char const* end) const noexcept {
+    return detail::parse_idn_run(it, end, detail::idn_run::domain);
+}
+
+// A const member, as Boost.URL's Rule concept declares parse, though it reads no member.
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+inline result<text> idna_label_rule_t::parse(char const*& it, char const* end) const noexcept {
+    return detail::parse_idn_run(it, end, detail::idn_run::label);
+}
+
 }  // namespace grammar
 
 /**
@@ -179,6 +269,17 @@ inline result<text> hostname_rule_t::parse(char const*& it, char const* end) con
 */
 [[nodiscard]] inline bool is_hostname(std::string_view s) noexcept {
     return detail::urlg::parse(s, grammar::hostname_rule).has_value();
+}
+
+/**
+ Whether `s` is an internationalized host name, JSON Schema's `idn-hostname`.
+
+ @param s Any byte string.
+ @return `parse(s, grammar::idn_hostname_rule).has_value()`.
+ @see "Addresses", in the guide.
+*/
+[[nodiscard]] inline bool is_idn_hostname(std::string_view s) noexcept {
+    return detail::urlg::parse(s, grammar::idn_hostname_rule).has_value();
 }
 
 }  // namespace webcpp::formats
