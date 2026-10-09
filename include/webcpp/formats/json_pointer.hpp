@@ -29,7 +29,7 @@
 namespace webcpp::formats {
 
 /**
- Whether a relative JSON Pointer may move its array index with a sign and a positive integer.
+ Whether a relative JSON Pointer may move its array index with a sign and an integer.
 
  @see "Identifiers", in the guide.
 */
@@ -77,6 +77,11 @@ constexpr std::size_t digits_end(std::string_view s, std::size_t i) noexcept {
     return i;
 }
 
+/** Past the non-negative integer at `s[i]`, a digit: "0" alone, else every digit of the run. */
+constexpr std::size_t integer_end(std::string_view s, std::size_t i) noexcept {
+    return s[i] == '0' ? i + 1 : digits_end(s, i + 1);
+}
+
 /**
  The length of the relative JSON pointer at the start of `s`: a non-negative integer without a
  leading zero, an index manipulation where `manipulation` allows it, then "#" or a json-pointer;
@@ -88,11 +93,11 @@ constexpr std::optional<std::size_t> relative_json_pointer_length(
     if (s.empty() || !urlg::digit_chars(s[0])) {
         return std::nullopt;
     }
-    std::size_t i = s[0] == '0' ? 1 : digits_end(s, 1);
-    // A sign without a positive integer after it is no manipulation: the pointer ends before it.
+    std::size_t i = integer_end(s, 0);
+    // A sign without an integer after it is no manipulation: the pointer ends before it.
     if (manipulation == index_manipulation::allowed && i + 1 < s.size() &&
-        (s[i] == '+' || s[i] == '-') && s[i + 1] != '0' && urlg::digit_chars(s[i + 1])) {
-        i = digits_end(s, i + 2);
+        (s[i] == '+' || s[i] == '-') && urlg::digit_chars(s[i + 1])) {
+        i = integer_end(s, i + 1);
     }
     if (i < s.size() && s[i] == '#') {
         return i + 1;
@@ -142,8 +147,9 @@ struct json_pointer_rule_t {
  manipulation, then `#` or a json-pointer.
 
  The integer is `0` or starts with 1 to 9, so `01` is refused. The index manipulation, a sign and
- a positive integer (`0+1`, `1-1#`), is draft-bhutton-00's, which draft 2020-12 and v1 cite; drafts
- 7 and 2019-09 cite draft-handrews-01, which has none, so @ref index_manipulation::refused
+ such an integer (`0+1`, `0-0`), is draft-bhutton-00's, which draft 2020-12 and v1 cite; it may
+ come before the `#` too (`1-1#`), as the draft's example `0-1#` does though its ABNF omits it.
+ Drafts 7 and 2019-09 cite draft-handrews-01, which has none, so @ref index_manipulation::refused
  refuses it. It stops after the `#`, or where its json-pointer does; where a sign is not a valid
  manipulation, it stops before the sign.
 

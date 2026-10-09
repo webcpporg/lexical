@@ -20,11 +20,14 @@ UTF-8 and must be well-formed.
 `is_relative_json_pointer` checks a relative JSON Pointer: a non-negative
 integer without a leading zero, then `#` or a JSON Pointer. Draft 2020-12 and
 v1 of JSON Schema cite draft-bhutton-relative-json-pointer-00, which lets an
-index manipulation follow the integer, a sign and a positive integer (`0+1`,
-`1-1#`); drafts 7 and 2019-09 cite draft-handrews-relative-json-pointer-01,
-which has none. The function takes that choice as its second argument:
+index manipulation follow the integer, a sign and another non-negative
+integer without a leading zero (`0+1`, `0-0`); drafts 7 and 2019-09 cite
+draft-handrews-relative-json-pointer-01, which has none. The draft's grammar
+puts the manipulation only before a JSON Pointer, yet its own example `0-1#`
+puts it before `#`; formats accepts both, so `1-1#` is valid too. The
+function takes that choice as its second argument:
 `index_manipulation::allowed`, the default, for 2020-12 and v1, and
 `index_manipulation::refused` for 7 and 2019-09. The rule takes it as
 `relative_json_pointer_rule_t{index_manipulation::refused}`. A sign that no
-positive integer follows (`0+`, `0+0`, `0-01`) is no manipulation, under
-either choice.
+integer follows (`0+`, `0-#`), or one whose integer has a leading zero
+(`0+01`), is no manipulation, under either choice.

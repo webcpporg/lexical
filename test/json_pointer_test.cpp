@@ -133,13 +133,18 @@ void relative_pointers_of_section_5_1() {
 }
 
 void index_manipulation_under_each_policy() {
-    // draft-bhutton-relative-json-pointer-00's index manipulation, a sign and a positive integer
-    // after the integer: valid when allowed (2020-12 and v1), never when refused (7 and 2019-09).
-    constexpr std::array<std::string_view, 6> manipulated{
+    // draft-bhutton-relative-json-pointer-00's index manipulation, a sign and a non-negative
+    // integer after the integer, before a json-pointer or "#": valid when allowed (2020-12 and v1),
+    // never when refused (7 and 2019-09).
+    constexpr std::array<std::string_view, 10> manipulated{
         "0-1",      // the draft's examples, from "baz"
         "0-1#",     //
-        "0+1/foo",  //
-        "1-1#",     //
+        "0+1/foo",  // before a json-pointer
+        "1-1#",     // and before "#"
+        "1+2#",     //
+        "0+0",      // zero, by the draft's ABNF
+        "0-0",      //
+        "0-0#",     //
         "2+10/a",   // an integer of several digits, a zero among them
         "0+9",      // nine, the last digit
     };
@@ -150,9 +155,7 @@ void index_manipulation_under_each_policy() {
         BOOST_TEST(formats::is_relative_json_pointer(text));
         BOOST_TEST(urlg::parse(text, fg::relative_json_pointer_rule).has_value());
     }
-    constexpr std::array<std::string_view, 10> broken{
-        "0+0",     // zero, which is no positive integer
-        "0-0#",    //
+    constexpr std::array<std::string_view, 8> broken{
         "0+01",    // a leading zero after the sign
         "0-01#",   //
         "0+",      // a sign without digits
