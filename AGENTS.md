@@ -102,3 +102,8 @@ holds only what is specific to formats.
   so that a change of idna's Unicode version that adds one fails it. An
   internationalized Mailbox's lengths, 64 octets for its local part and 254
   for the whole, are measured as written, in UTF-8.
+- **webcpp::regex.** `<webcpp/formats/regex.hpp>` is the only header that
+  includes `<webcpp/regex.hpp>`, which `meta/include-boundaries.json` holds;
+  no header includes SRELL. The engine is webcpp::regex's configuration
+  (`webcpp-regex-backend`), SRELL by default; formats' suite runs in the
+  default configuration only.

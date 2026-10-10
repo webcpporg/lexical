@@ -14,6 +14,7 @@
 #include <webcpp/formats/hostname.hpp>
 #include <webcpp/formats/ip.hpp>
 #include <webcpp/formats/json_pointer.hpp>
+#include <webcpp/formats/regex.hpp>
 #include <webcpp/formats/uri.hpp>
 #include <webcpp/formats/uri_template.hpp>
 #include <webcpp/formats/uuid.hpp>
@@ -359,6 +360,19 @@ void idn_allocates_nothing() {
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
+/**
+ is_regex allocates only through the resource it is given: every global allocation of the call is
+ one of the counting resource's own, which takes its memory from the global heap.
+*/
+void a_regex_allocates_only_through_its_resource() {
+    webcpp::test::counting_resource resource;
+    const std::size_t before = global_allocations();
+    BOOST_TEST(webcpp::formats::is_regex("(?<y>\\d{4})-(?<m>\\d{2})|\\p{Script=Greek}+", resource));
+    BOOST_TEST(!webcpp::formats::is_regex("^(abc]", resource));
+    BOOST_TEST_GT(resource.allocations, 0U);
+    BOOST_TEST_EQ(global_allocations() - before, resource.allocations);
+}
+
 }  // namespace
 
 int main() {
@@ -373,5 +387,6 @@ int main() {
     hosts_allocate_nothing();
     iris_and_templates_allocate_within_their_bounds();
     idn_allocates_nothing();
+    a_regex_allocates_only_through_its_resource();
     return boost::report_errors();
 }

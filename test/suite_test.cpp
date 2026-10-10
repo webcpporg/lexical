@@ -22,6 +22,7 @@
 // (optional/format/uuid.json).
 
 #include <webcpp/formats.hpp>
+#include <webcpp/formats/regex.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/json.hpp>
@@ -75,6 +76,7 @@ constexpr std::array validators{
     mapping{"iri", [](std::string_view s) { return formats::is_iri(s); }},
     mapping{"iri-reference", [](std::string_view s) { return formats::is_iri_reference(s); }},
     mapping{"json-pointer", [](std::string_view s) { return formats::is_json_pointer(s); }},
+    mapping{"regex", [](std::string_view s) { return formats::is_regex(s); }},
     mapping{
         "relative-json-pointer",
         [](std::string_view s) { return formats::is_relative_json_pointer(s); },
@@ -91,9 +93,7 @@ constexpr std::array validators{
  and skipped by name, never silently. A change that writes a validator moves its format from here
  to validators; the list leaves the runner once it is empty.
 */
-constexpr auto pending = std::to_array<std::string_view>({
-    "regex",
-});
+constexpr std::array<std::string_view, 0> pending{};
 
 /** A format whose validator depends on the dialect, by the policy that dialect's text cites. */
 struct dialect_mapping {

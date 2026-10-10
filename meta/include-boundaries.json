@@ -7,7 +7,17 @@
                 "include/webcpp/formats/detail/*.hpp"
             ],
             "must-not-include": ["srell"],
-            "why": "only regex.hpp depends on SRELL"
+            "why": "formats reaches SRELL only through webcpp::regex"
+        },
+        {
+            "headers": [
+                "include/webcpp/formats.hpp",
+                "include/webcpp/formats/*.hpp",
+                "include/webcpp/formats/detail/*.hpp"
+            ],
+            "except": ["include/webcpp/formats/regex.hpp"],
+            "must-not-include": ["webcpp/regex"],
+            "why": "only regex.hpp depends on webcpp::regex"
         },
         {
             "headers": [

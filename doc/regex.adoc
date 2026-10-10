@@ -1,0 +1,41 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-regex]
+== Regular expressions
+
+`is_regex` answers whether a string is a regular expression, JSON Schema's
+`regex`, by compiling it with webcpp::regex. It is declared in
+`<webcpp/formats/regex.hpp>`, the one header of formats that includes it:
+`<webcpp/formats.hpp>` leaves it out, and a program that never validates a
+pattern does not compile an engine.
+
+The verdict is the configured backend's: ECMA-262's `Pattern` in `u` mode
+on SRELL, the default, and on Boost.Regex; {cpp}'s ECMAScript on std::regex,
+which is not JSON Schema's `regex`
+(link:{webcpp-libs}/regex/{webcpp-page}#regex-choosing[choosing a backend]).
+webcpp::regex refuses SRELL's extensions `\A`, `\Z` and `\z`, which
+ECMA-262 refuses, and an escaped backslash before one (`\\A`) stays valid;
+a leading `(?i)` is refused too. A pattern that is not well-formed UTF-8 is
+refused, and a NUL is a literal like any other character.
+
+webcpp::regex also refuses a pattern past one of its bounds, nested deeper
+than `webcpp::regex::max_nesting` or with more alternatives than
+`webcpp::regex::max_alternatives`, its quantifiers counted, so that no
+engine's recursion overflows the 64 KiB stack of WebAssembly
+(link:{webcpp-libs}/regex/{webcpp-page}#regex-compiling[compiling]). Such a
+pattern is not judged: ECMA-262 may allow it, but no search of the program
+could use it, and `is_regex` answers `false`, as it does for a pattern
+ECMA-262 refuses.
+
+`is_regex(pattern, resource)` compiles in the memory of `resource` and gives
+it all back before returning; `is_regex(pattern)` uses the default
+resource. On another backend than SRELL, the compilation allocates as that
+backend does, which webcpp::regex's page tables.
+
+A regex has no rule: webcpp::regex compiles a whole string and reports no
+position, so a rule could only consume all of its input, which composes
+with nothing.

@@ -6,7 +6,7 @@
 
 /**
  Every format of formats: include this one header for all of them. It leaves out
- `<webcpp/formats/regex.hpp>`, which brings SRELL, a regular expression engine a program that
+ `<webcpp/formats/regex.hpp>`, which brings webcpp::regex and its engine, which a program that
  never validates a regex should not compile; that header is included by name.
 
  @see "Introduction", in the guide.
