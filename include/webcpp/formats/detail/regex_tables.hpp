@@ -65,7 +65,7 @@ inline constexpr std::array<std::string_view, 99> binary_names{
 };
 
 /** Every name of a script that a code point has, sorted, as \\p{...} writes it. */
-inline constexpr std::array<std::string_view, 342> script_names{
+inline constexpr std::array<std::string_view, 344> script_names{
     "Adlam", "Adlm", "Aghb", "Ahom", "Anatolian_Hieroglyphs", "Arab", "Arabic", "Armenian", "Armi",
     "Armn", "Avestan", "Avst", "Bali", "Balinese", "Bamu", "Bamum", "Bass", "Bassa_Vah", "Batak",
     "Batk", "Beng", "Bengali", "Berf", "Beria_Erfe", "Bhaiksuki", "Bhks", "Bopo", "Bopomofo",
@@ -103,9 +103,9 @@ inline constexpr std::array<std::string_view, 342> script_names{
     "Tai_Viet", "Tai_Yo", "Takr", "Takri", "Tale", "Talu", "Tamil", "Taml", "Tang", "Tangsa",
     "Tangut", "Tavt", "Tayo", "Telu", "Telugu", "Tfng", "Tglg", "Thaa", "Thaana", "Thai",
     "Tibetan", "Tibt", "Tifinagh", "Tirh", "Tirhuta", "Tnsa", "Todhri", "Todr", "Tolong_Siki",
-    "Tols", "Toto", "Tulu_Tigalari", "Tutg", "Ugar", "Ugaritic", "Vai", "Vaii", "Vith", "Vithkuqi",
-    "Wancho", "Wara", "Warang_Citi", "Wcho", "Xpeo", "Xsux", "Yezi", "Yezidi", "Yi", "Yiii",
-    "Zanabazar_Square", "Zanb", "Zinh", "Zyyy",
+    "Tols", "Toto", "Tulu_Tigalari", "Tutg", "Ugar", "Ugaritic", "Unknown", "Vai", "Vaii", "Vith",
+    "Vithkuqi", "Wancho", "Wara", "Warang_Citi", "Wcho", "Xpeo", "Xsux", "Yezi", "Yezidi", "Yi",
+    "Yiii", "Zanabazar_Square", "Zanb", "Zinh", "Zyyy", "Zzzz",
 };
 
 /** ID_Start ranges: a first code point shifted left by 21, and a last. */

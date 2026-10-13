@@ -21,10 +21,11 @@ reads of Unicode, as constexpr arrays: every name and alias \\p{...} accepts, of
 General_Category, of one of the 53 binary properties ECMA-262 lists, and of a script; and the
 ranges of ID_Start and ID_Continue, which a group's name is made of. A script that no code point
 has, as Script or among its Script_Extensions, has no name, as ECMA-262's table of the values of
-Script leaves it out (Katakana_Or_Hiragana, in Unicode 17.0.0). webcpp.generated runs it with a
-path in its build directory and compares the output with the committed file, or copies it over the
-committed file for update-generated. Two runs write the same bytes: no date, sorted data, "\\n"
-line endings. Nothing is written unless every check passed.
+Script leaves it out (Katakana_Or_Hiragana, in Unicode 17.0.0). Unknown, the value of the
+unassigned code points, which Scripts.txt does not list, is named although no file names it.
+webcpp.generated runs it with a path in its build directory and compares the output with the
+committed file, or copies it over the committed file for update-generated. Two runs write the same
+bytes: no date, sorted data, "\\n" line endings. Nothing is written unless every check passed.
 
 Before writing, the generator checks what the library assumes of the data, and stops naming the
 assumption that fails: each of ECMA-262's binary properties but ASCII, Any and Assigned is a
@@ -52,6 +53,7 @@ PINNED = LIBRARY / 'tools' / 'unicode.json'
 TABLES = 'include/webcpp/formats/detail/regex_tables.hpp'
 
 CODE_POINT_BITS = 21
+CODE_POINTS = 0x110000
 
 # ECMA-262's table "Binary Unicode property aliases" (ECMAScript 2025, 22.2.2.9.2), its canonical
 # names in its order; PropertyAliases.txt gives their aliases. ASCII, Any and Assigned are
@@ -192,15 +194,23 @@ class Unicode:
         script = {alias: index for index, names in enumerate(self.script_names)
                   for alias in names}
         used: set[int] = set()
-        for first, _, fields in records(inputs['ucd/Scripts.txt']):
+        listed = 0
+        for first, last, fields in records(inputs['ucd/Scripts.txt']):
             if fields[0] not in script:
                 raise Fault(f'Scripts.txt: unknown script {fields[0]!r} at {first:04X}')
             used.add(script[fields[0]])
+            listed += last - first + 1
         for first, _, fields in records(inputs['ucd/ScriptExtensions.txt']):
             for name in fields[0].split():
                 if name not in script:
                     raise Fault(f'ScriptExtensions.txt: unknown script {name!r} at {first:04X}')
                 used.add(script[name])
+        # Scripts.txt lists no unassigned code point, and each one is Unknown, the value its header
+        # gives them; ECMA-262 names that value Unknown and Zzzz.
+        if listed < CODE_POINTS:
+            if 'Unknown' not in script:
+                raise Fault('PropertyValueAliases.txt: no script Unknown, which ECMA-262 names')
+            used.add(script['Unknown'])
         self.unnamed_scripts = [index for index in range(len(self.script_names))
                                 if index not in used]
 
