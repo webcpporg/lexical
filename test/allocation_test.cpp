@@ -125,8 +125,8 @@ void free_aligned_memory(void* memory) noexcept {
 
 }  // namespace
 
-// The aligned forms count too: libstdc++'s new_delete_resource allocates through them whatever
-// the alignment, where libc++ uses the plain form for the default alignment.
+// The aligned forms count too: the program's heap, which every resource of these tests ends in,
+// allocates through them.
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 BOOST_NOINLINE void* operator new(std::size_t size, std::align_val_t alignment) {
@@ -153,14 +153,25 @@ BOOST_NOINLINE void operator delete(void* memory, std::size_t /*size*/,
 
 namespace {
 
-/** The instrument counts: a string past any small-string buffer, and a resource's allocation. */
+/**
+ The instrument counts: a string past any small-string buffer, and a resource's allocation.
+
+ Tip: a container's own bookkeeping is measured first, an empty string: nothing, but under MSVC's
+ debug library, which gives each container a proxy from its allocator.
+*/
 void the_instrument_counts() {
+    const std::size_t start = global_allocations();
+    {
+        const std::string empty;
+        BOOST_TEST(empty.empty());
+    }
+    const std::size_t bookkeeping = global_allocations() - start;
     const std::size_t before = global_allocations();
     {
         const std::string long_text(1000, 'x');
         BOOST_TEST_EQ(long_text.size(), 1000U);
     }
-    BOOST_TEST_EQ(global_allocations() - before, 1U);
+    BOOST_TEST_EQ(global_allocations() - before, 1U + bookkeeping);
     webcpp::test::counting_resource resource;
     const std::size_t again = global_allocations();
     void* memory = resource.allocate(64, alignof(std::max_align_t));
@@ -171,12 +182,8 @@ void the_instrument_counts() {
 }
 
 /**
- Every power-of-two alignment from 1 to 64 reaches a replaced operator new once, through the
- resource, and comes back aligned.
-
- Tip: libstdc++'s new_delete_resource takes the aligned form for every alignment, and libc++ for
- one past the default alignment, so each lane reaches both replacements, below the alignment
- aligned_alloc accepts too.
+ Every power-of-two alignment from 1 to 64 reaches the replaced aligned operator new once,
+ through the resource, and comes back aligned, below the alignment aligned_alloc accepts too.
 */
 void every_alignment_is_counted_and_honoured() {
     constexpr std::array<std::size_t, 7> alignments{1, 2, 4, 8, 16, 32, 64};
@@ -451,6 +458,9 @@ void a_regex_allocates_nothing() {
 }  // namespace
 
 int main() {
+    // The default resource, which the IRI functions take memory from when given none, is the
+    // program's heap, so that the global operator new counts it under every library.
+    std::pmr::set_default_resource(&webcpp::test::the_program_heap());
     the_instrument_counts();
     every_alignment_is_counted_and_honoured();
 #ifndef BOOST_NO_EXCEPTIONS
