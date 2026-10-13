@@ -9,8 +9,7 @@
 # its headers and Boost's, webcpp's configuration, webcpp::idna, for
 # internationalized names, and Boost.URL's compiled part, which ipv4_address
 # needs (/webcpp//boost_url, built from Boost's sources for every target).
-# Boost.Regex, which only <webcpp/formats/regex.hpp> includes, is header-only
-# and comes with Boost's headers.
+# The regex validator is formats' own and needs nothing else.
 
 project /webcpp/formats ;
 

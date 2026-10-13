@@ -7,8 +7,7 @@ takes a `std::string_view` and answers `bool`, and, but `regex`, a rule of
 `webcpp::formats::grammar` that composes with Boost.URL's combinators. Each is
 checked as its RFC or ECMA-262 defines it, against the official
 JSON-Schema-Test-Suite, and `regex` against V8. Nothing allocates but an IRI
-too long for its inline buffer, through a `std::pmr::memory_resource`, and a
-regular expression, through its resource and Boost.Regex.
+too long for its inline buffer, through a `std::pmr::memory_resource`.
 
 | Formats | Functions |
 | --- | --- |
@@ -68,10 +67,10 @@ json-pointer /a~1b: valid
 ```
 
 `<webcpp/formats.hpp>` includes every format but `regex`, whose header
-`<webcpp/formats/regex.hpp>` brings Boost.Regex. formats needs Boost 1.92 or
-newer (URL, whose compiled part webcpp builds from Boost's sources, System,
-and the header-only Regex for `regex` alone), webcpp's configuration, config,
-and webcpp::idna, which `/webcpp/formats//formats` brings. It runs natively,
+`<webcpp/formats/regex.hpp>` brings the Unicode tables of ECMA-262's classes.
+formats needs Boost 1.92 or newer (URL, whose compiled part webcpp builds from
+Boost's sources, and System), webcpp's configuration, config, and webcpp::idna,
+which `/webcpp/formats//formats` brings. It runs natively,
 on wasm32-wasip2 and wasm32-wasip3, and on emscripten.
 
 ## Building and testing

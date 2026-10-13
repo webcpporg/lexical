@@ -65,12 +65,12 @@ URI reference and no URI, which needs a scheme.
 === Requirements
 
 `<webcpp/formats.hpp>` includes every format but `regex`, whose header
-`<webcpp/formats/regex.hpp>` brings Boost.Regex and its Unicode tables; the
-names are in the namespaces `webcpp::formats` and `webcpp::formats::grammar`.
-formats is header-only {cpp}20 and needs Boost 1.92 or newer: Boost.URL,
-whose compiled part webcpp builds from Boost's sources for every target,
-Boost.System, and Boost.Regex, header-only, for `regex` alone; and webcpp's
-configuration, config, and webcpp::idna, for internationalized names. A b2
+`<webcpp/formats/regex.hpp>` brings the Unicode tables of ECMA-262's classes;
+the names are in the namespaces `webcpp::formats` and
+`webcpp::formats::grammar`. formats is header-only {cpp}20 and needs Boost
+1.92 or newer: Boost.URL, whose compiled part webcpp builds from Boost's
+sources for every target, and Boost.System; and webcpp's configuration,
+config, and webcpp::idna, for internationalized names. A b2
 project uses it through `/webcpp/formats//formats`, which brings all of
 them:
 

@@ -21,8 +21,7 @@ grammar rule, which composes with Boost.URL's combinators into grammars of a
 program's own. Each is checked as its RFC or ECMA-262 defines it, against
 the official JSON-Schema-Test-Suite, and `regex` against V8. Nothing
 allocates but an IRI too long for its inline buffer, through a
-`std::pmr::memory_resource`, and a regular expression, through its resource
-and Boost.Regex.
+`std::pmr::memory_resource`.
 
 This page teaches formats format by format: what each checks, its rules and
 its examples. Every program it shows was compiled and run, natively and for

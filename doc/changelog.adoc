@@ -22,5 +22,5 @@ of every version are on webcpp's index page.
 * Added IP addresses, URIs and URI references through Boost.URL, faithful to RFC 3986.
 * Added IRIs and URI templates, mapped to URIs for Boost.URL within a memory resource.
 * Added host names and e-mail addresses, internationalized ones judged by webcpp::idna.
-* Added ECMA-262 patterns in u mode through Boost.Regex, with Unicode 17 tables.
+* Added ECMA-262 patterns in u mode, checked by an allocation-free syntax validator, with Unicode 17 tables.
 // end::unreleased[]

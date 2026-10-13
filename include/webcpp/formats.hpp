@@ -6,9 +6,8 @@
 
 /**
  Every format of formats: include this one header for all of them. It leaves out
- `<webcpp/formats/regex.hpp>`, which brings Boost.Regex and the Unicode tables of ECMA-262's
- classes, which a program that never validates a regex should not compile; that header is
- included by name.
+ `<webcpp/formats/regex.hpp>`, which brings the Unicode tables of ECMA-262's classes; a program
+ that never validates a regex should not compile them, so that header is included by name.
 
  @see "Introduction", in the guide.
 */

@@ -10,8 +10,8 @@
                 "include/webcpp/formats/regex.hpp",
                 "include/webcpp/formats/detail/regex_*.hpp"
             ],
-            "must-not-include": ["boost/regex", "webcpp/formats/regex", "webcpp/formats/detail/regex_"],
-            "why": "only regex.hpp brings Boost.Regex and the Unicode tables, which formats.hpp leaves out"
+            "must-not-include": ["webcpp/formats/regex", "webcpp/formats/detail/regex_"],
+            "why": "only regex.hpp brings the Unicode tables of ECMA-262's classes, which formats.hpp leaves out"
         },
         {
             "headers": [
@@ -30,6 +30,15 @@
             ],
             "must-not-include": ["boost/json"],
             "why": "JSON is the tests', not the library's"
+        },
+        {
+            "headers": [
+                "include/webcpp/formats.hpp",
+                "include/webcpp/formats/*.hpp",
+                "include/webcpp/formats/detail/*.hpp"
+            ],
+            "must-not-include": ["boost/regex", "webcpp/regex", "srell"],
+            "why": "is_regex is a syntax validator of formats' own: formats runs no regular expression and depends on no regex library"
         }
     ]
 }

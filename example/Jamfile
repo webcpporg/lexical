@@ -4,10 +4,10 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# A program that includes <webcpp/formats/regex.hpp> instantiates Boost.Regex
-# beside Boost.URL and idna and holds the Unicode tables of its classes, as
-# idna's tests of its tables do, which MSVC compiles only with /bigobj: the
-# examples take it on MSVC, not measured here, where no Windows machine is.
+# A program that includes <webcpp/formats/regex.hpp> holds the Unicode tables
+# of ECMA-262's classes, as idna's tests of its tables do, which MSVC compiles
+# only with /bigobj: the examples take it on MSVC, not measured here, where no
+# Windows machine is.
 project : requirements <library>/webcpp/formats//formats
   <toolset>msvc:<cxxflags>/bigobj ;
 

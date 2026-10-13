@@ -56,7 +56,7 @@ CODE_POINT_BITS = 21
 # ECMA-262's table "Binary Unicode property aliases" (ECMAScript 2025, 22.2.2.9.2), its canonical
 # names in its order; PropertyAliases.txt gives their aliases. ASCII, Any and Assigned are
 # ECMA-262's own.
-BINARY = '''
+BINARY: tuple[str, ...] = tuple('''
     ASCII ASCII_Hex_Digit Alphabetic Any Assigned Bidi_Control Bidi_Mirrored Case_Ignorable Cased
     Changes_When_Casefolded Changes_When_Casemapped Changes_When_Lowercased
     Changes_When_NFKC_Casefolded Changes_When_Titlecased Changes_When_Uppercased Dash
@@ -67,7 +67,7 @@ BINARY = '''
     Pattern_Syntax Pattern_White_Space Quotation_Mark Radical Regional_Indicator Sentence_Terminal
     Soft_Dotted Terminal_Punctuation Unified_Ideograph Uppercase Variation_Selector White_Space
     XID_Continue XID_Start
-'''.split()
+'''.split())
 ECMA_OWN = ('ASCII', 'Any', 'Assigned')
 IDENTIFIER_PROPERTIES = ('ID_Start', 'ID_Continue')
 
