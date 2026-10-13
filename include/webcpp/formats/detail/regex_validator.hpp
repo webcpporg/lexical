@@ -201,14 +201,10 @@ constexpr regex_token next_token(std::string_view s, std::size_t& at) noexcept {
     }
     code_point_at(s, at, &at);
     switch (c) {
-        case '(':
-            return regex_token::open;
-        case ')':
-            return regex_token::close;
-        case '|':
-            return regex_token::bar;
-        default:
-            return regex_token::other;
+        case '(': return regex_token::open;
+        case ')': return regex_token::close;
+        case '|': return regex_token::bar;
+        default: return regex_token::other;
     }
 }
 
@@ -343,14 +339,9 @@ private:
                 case regex_token::open:
                     places[count++] = {.disjunction = token, .alternative = 0};
                     break;
-                case regex_token::close:
-                    --count;
-                    break;
-                case regex_token::bar:
-                    ++places[count - 1].alternative;
-                    break;
-                case regex_token::other:
-                    break;
+                case regex_token::close: --count; break;
+                case regex_token::bar: ++places[count - 1].alternative; break;
+                case regex_token::other: break;
             }
         }
         return count;
@@ -423,8 +414,8 @@ private:
         if (name == "General_Category" || name == "gc") {
             return has_name(regex_tables::general_category_names, value);
         }
-        const bool script = name == "Script" || name == "sc" || name == "Script_Extensions" ||
-                            name == "scx";
+        const bool script =
+            name == "Script" || name == "sc" || name == "Script_Extensions" || name == "scx";
         return script && has_name(regex_tables::script_names, value);
     }
 
@@ -444,11 +435,10 @@ private:
         }
         const std::string_view body = p_.substr(first, i_ - 1 - first);
         const std::size_t equals = body.find('=');
-        const bool found =
-            body.size() <= longest_property &&
-            (equals == std::string_view::npos
-                 ? lone_property(body)
-                 : property_value(body.substr(0, equals), body.substr(equals + 1)));
+        const bool found = body.size() <= longest_property &&
+                           (equals == std::string_view::npos
+                                ? lone_property(body)
+                                : property_value(body.substr(0, equals), body.substr(equals + 1)));
         if (!found) {
             fail("an unknown property or value in \\p{...}");
         }
@@ -618,26 +608,16 @@ private:
     constexpr bool atom(flags f) noexcept {
         const char32_t c = peek();
         switch (c) {
-            case '(':
-                return group(f);
-            case '[':
-                return character_class();
-            case '\\':
-                take();
-                return atom_escape();
+            case '(': return group(f);
+            case '[': return character_class();
+            case '\\': take(); return atom_escape();
             case '*':
             case '+':
-            case '?':
-                fail("a quantifier with nothing to repeat");
-                return false;
+            case '?': fail("a quantifier with nothing to repeat"); return false;
             case '{':
             case '}':
-            case ']':
-                fail("a lone {, } or ]");
-                return false;
-            default:
-                take();
-                return true;
+            case ']': fail("a lone {, } or ]"); return false;
+            default: take(); return true;
         }
     }
 
@@ -747,11 +727,8 @@ private:
                 }
                 return c;
             }
-            case 'u':
-                return unicode();
-            default:
-                fail("an escape that u mode does not have");
-                return std::nullopt;
+            case 'u': return unicode();
+            default: fail("an escape that u mode does not have"); return std::nullopt;
         }
     }
 

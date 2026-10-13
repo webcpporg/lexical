@@ -36,7 +36,8 @@ constexpr bool in_ranges(std::span<const std::uint64_t> ranges, char32_t cp) noe
     constexpr std::uint64_t mask = (std::uint64_t{1} << code_point_bits) - 1;
     // The first range that starts after cp; the one before it holds cp, if any does.
     const auto after = static_cast<std::size_t>(
-        std::ranges::upper_bound(ranges, (static_cast<std::uint64_t>(cp) << code_point_bits) | mask) -
+        std::ranges::upper_bound(ranges,
+                                 (static_cast<std::uint64_t>(cp) << code_point_bits) | mask) -
         ranges.begin());
     return after != 0 && cp <= (ranges[after - 1] & mask);
 }
