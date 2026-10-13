@@ -6,18 +6,12 @@
                 "include/webcpp/formats/*.hpp",
                 "include/webcpp/formats/detail/*.hpp"
             ],
-            "must-not-include": ["srell"],
-            "why": "formats reaches SRELL only through webcpp::regex"
-        },
-        {
-            "headers": [
-                "include/webcpp/formats.hpp",
-                "include/webcpp/formats/*.hpp",
-                "include/webcpp/formats/detail/*.hpp"
+            "except": [
+                "include/webcpp/formats/regex.hpp",
+                "include/webcpp/formats/detail/regex_*.hpp"
             ],
-            "except": ["include/webcpp/formats/regex.hpp"],
-            "must-not-include": ["webcpp/regex"],
-            "why": "only regex.hpp depends on webcpp::regex"
+            "must-not-include": ["boost/regex", "webcpp/formats/regex", "webcpp/formats/detail/regex_"],
+            "why": "only regex.hpp brings Boost.Regex and the Unicode tables, which formats.hpp leaves out"
         },
         {
             "headers": [
@@ -35,7 +29,7 @@
                 "include/webcpp/formats/detail/*.hpp"
             ],
             "must-not-include": ["boost/json"],
-            "why": "JSON is the suite runner's, not the library's"
+            "why": "JSON is the tests', not the library's"
         }
     ]
 }

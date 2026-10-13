@@ -1,0 +1,4 @@
+bücher.example:8080 -> host bücher.example, port 8080
+example.com -> host example.com
+a·b.example:80 -> refused by webcpp.idna
+example.com:99999 -> refused by boost.url.grammar

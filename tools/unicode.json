@@ -1,0 +1,30 @@
+{
+    "version": "17.0.0",
+    "files": [
+        {
+            "path": "ucd/DerivedCoreProperties.txt",
+            "url": "https://www.unicode.org/Public/17.0.0/ucd/DerivedCoreProperties.txt",
+            "sha256": "24c7fed1195c482faaefd5c1e7eb821c5ee1fb6de07ecdbaa64b56a99da22c08"
+        },
+        {
+            "path": "ucd/PropertyAliases.txt",
+            "url": "https://www.unicode.org/Public/17.0.0/ucd/PropertyAliases.txt",
+            "sha256": "4441f573caf952ffece1d7c892e7715bd7136dfc26f96eb6f268bf1e474715fb"
+        },
+        {
+            "path": "ucd/PropertyValueAliases.txt",
+            "url": "https://www.unicode.org/Public/17.0.0/ucd/PropertyValueAliases.txt",
+            "sha256": "64e9a5f76f7a1e8b5a47d6a1f9a26522a251208f5276bdfa1559dac7cf2e827a"
+        },
+        {
+            "path": "ucd/ScriptExtensions.txt",
+            "url": "https://www.unicode.org/Public/17.0.0/ucd/ScriptExtensions.txt",
+            "sha256": "ec2107e58825a1586acee8e0911ce18260394ac8b87e535ca325f1ccbeb06bc6"
+        },
+        {
+            "path": "ucd/Scripts.txt",
+            "url": "https://www.unicode.org/Public/17.0.0/ucd/Scripts.txt",
+            "sha256": "9f5e50d3abaee7d6ce09480f325c706f485ae3240912527e651954d2d6b035bf"
+        }
+    ]
+}

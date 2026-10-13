@@ -1,0 +1,16 @@
+# Copyright (c) 2026 WebCpp.org
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# https://www.boost.org/LICENSE_1_0.txt)
+
+# formats' oracle: V8, through Node, which judges the patterns of
+# test/regex/cases as JavaScript's `new RegExp(pattern, "u")` does, the
+# verdicts the test regex_v8 compares is_regex with. It needs no package: V8
+# is the Node that runs it, the CI's Node 26.7.0.
+
+import webcpp ;
+
+webcpp.original node ;
+webcpp.cases v8 : v8.mjs : ../regex/cases : ../regex/expected ;
+webcpp.lane oracle : cases-v8 ;

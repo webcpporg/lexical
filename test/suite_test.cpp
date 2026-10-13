@@ -11,10 +11,10 @@
 // expect valid, and is counted apart. The run fails on a failure its dialect's known-failure list
 // does not name, on a listed test that passes or that the suite does not hold, and on a format
 // that maps to no validator. It also fails, by name, on a known failure that names a test no
-// validator judges (a pending or unknown format, a non-string test), on a list that names a test
-// twice, on a case whose schema holds a keyword besides format, and on a line of the lists below
-// that names a format or a dialect the suite does not hold. It runs on every target, the suite
-// and its known-failure lists reaching a WASI program through webcpp.data.
+// validator judges (an unknown format, a non-string test), on a list that names a test twice, on a
+// case whose schema holds a keyword besides format, and on a line of the lists below that names a
+// format or a dialect the suite does not hold. It runs on every target, the suite and its
+// known-failure lists reaching a WASI program through webcpp.data.
 // WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE names the suite's root, from
 // /webcpp/third_party//json-schema-test-suite, and
 // WEBCPP_TEST_FORMATS_KNOWN_FAILURES the lists' directory, from test/Jamfile. A known failure names
@@ -88,13 +88,6 @@ constexpr std::array validators{
     mapping{"uuid", [](std::string_view s) { return formats::is_uuid(s); }},
 };
 
-/**
- The formats the suite names whose validators are not written yet: their string tests are counted
- and skipped by name, never silently. A change that writes a validator moves its format from here
- to validators; the list leaves the runner once it is empty.
-*/
-constexpr std::array<std::string_view, 0> pending{};
-
 /** A format whose validator depends on the dialect, by the policy that dialect's text cites. */
 struct dialect_mapping {
     std::string_view format;
@@ -139,18 +132,8 @@ constexpr bool sorted_and_unique(const Range& range, Projection projection) {
            std::ranges::end(range);
 }
 
-/** Whether no format is both mapped to a validator and pending. */
-constexpr bool none_mapped_and_pending() {
-    return std::ranges::none_of(validators, [](const mapping& m) {
-        return std::ranges::find(pending, m.format) != pending.end();
-    });
-}
-
-// A change that registers a format edits both lists: these catch an unsorted or duplicated line,
-// and a format left pending once its validator is mapped.
+// A change that registers a format adds its line: this catches an unsorted or duplicated one.
 static_assert(sorted_and_unique(validators, &mapping::format));
-static_assert(sorted_and_unique(pending, std::identity{}));
-static_assert(none_mapped_and_pending());
 
 /** The format the suite holds for json_schema's question, an unknown format: skipped by name. */
 constexpr std::string_view unknown_format = "unknown";
@@ -177,7 +160,6 @@ using test_id = std::tuple<std::string, std::string, std::string>;
 struct tally {
     std::size_t strings = 0;
     std::size_t known = 0;
-    std::size_t pending = 0;
     std::size_t non_strings = 0;
     std::size_t skipped = 0;
 };
@@ -195,7 +177,7 @@ struct dialect_run {
     std::set<std::string> formats;
 };
 
-/** Where a test is, and the validator its case's format maps to: null when pending or unknown. */
+/** Where a test is, and the validator its case's format maps to: null when unknown. */
 struct where {
     std::string_view dialect;
     std::string_view file;
@@ -369,13 +351,6 @@ void run_test(const where& at, const json::object& test, dialect_run& run) {
         refuse_listed(at, description, "its format \"unknown\" is skipped", run.failures);
         return;
     }
-    if (at.valid == nullptr) {
-        ++run.counted.pending;
-        refuse_listed(at, description,
-                      std::string("its format \"") + std::string(at.format) + "\" is pending",
-                      run.failures);
-        return;
-    }
     judge(at, description, data->get_string(), expected->get_bool(), run);
 }
 
@@ -419,8 +394,7 @@ void run_case(std::string_view name, std::string_view file, const json::value& g
         .valid = validator_for(format, name),
     };
     run.formats.emplace(format);
-    const bool is_pending = std::ranges::find(pending, format) != pending.end();
-    if (!BOOST_TEST(at.valid != nullptr || is_pending || format == unknown_format)) {
+    if (!BOOST_TEST(at.valid != nullptr || format == unknown_format)) {
         std::cerr << name << '/' << file << ": the format \"" << format
                   << "\" maps to no validator\n";
         return;
@@ -478,13 +452,13 @@ std::set<std::string> run_dialect(const dialect& d) {
     }
     const tally& counted = run.counted;
     std::cout << d.name << ": " << counted.strings << " string tests, " << counted.known
-              << " known failures, " << counted.pending << " pending, " << counted.non_strings
-              << " non-string, " << counted.skipped << " skipped (unknown)\n";
+              << " known failures, " << counted.non_strings << " non-string, " << counted.skipped
+              << " skipped (unknown)\n";
     return std::move(run.formats);
 }
 
 /**
- Checks that every format validators, pending and dialect_validators name is one the suite holds,
+ Checks that every format validators and dialect_validators name is one the suite holds,
  in the dialect a policy names: a misspelled line would otherwise judge nothing, without a word.
 */
 void check_every_format_met(const std::set<std::pair<std::string, std::string>>& met) {
@@ -495,11 +469,6 @@ void check_every_format_met(const std::set<std::pair<std::string, std::string>>&
         if (!BOOST_TEST(anywhere(m.format))) {
             std::cerr << "validators: \"" << m.format
                       << "\" is a format no file of the suite holds\n";
-        }
-    }
-    for (const std::string_view format : pending) {
-        if (!BOOST_TEST(anywhere(format))) {
-            std::cerr << "pending: \"" << format << "\" is a format no file of the suite holds\n";
         }
     }
     for (const dialect_mapping& m : dialect_validators) {

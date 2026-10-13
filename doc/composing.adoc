@@ -21,7 +21,22 @@ internationalized host and an optional port, `bücher.example:8080`, are a
 `tuple_rule` of `idn_hostname_rule` and an `optional_rule` of another
 `tuple_rule`, a colon, `squelch(delim_rule(':'))`, then
 `unsigned_rule<std::uint16_t>`, which yields the host's text and the port's
-number. Where a rule stops inside a longer input is part of its contract:
+number; a rule that refuses says whose rule it was, through its error's
+category:
+
+[source]
+----
+include::{examples}/formats_grammar.cpp[tag=host_port,indent=0]
+----
+
+It prints:
+
+[listing]
+----
+include::{examples}/formats_grammar.expected[]
+----
+
+Where a rule stops inside a longer input is part of its contract:
 
 [%header,cols="2,5"]
 |===

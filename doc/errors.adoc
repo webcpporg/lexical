@@ -25,5 +25,8 @@ formats has no error category of its own:
 formats raises no exception of its own, and builds without exceptions.
 `WEBCPP_FORMATS_NO_EXCEPTIONS`, defined without exceptions or by the
 developer, changes nothing in it: it exists so that a program can set it for
-every webcpp library alike. Only a memory resource can throw, `std::bad_alloc`
-from the default one, and only the functions that take a resource reach one.
+every webcpp library alike. Only an allocation can throw, `std::bad_alloc`
+from the default resource or the global `operator new`: an IRI function's
+resource, and the resource and Boost.Regex's compilation of `is_regex`
+(<<formats-allocation>>). A pattern Boost.Regex refuses is its status, never
+an exception: `is_regex` compiles with `no_except`.

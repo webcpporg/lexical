@@ -8,34 +8,144 @@
 == Regular expressions
 
 `is_regex` answers whether a string is a regular expression, JSON Schema's
-`regex`, by compiling it with webcpp::regex. It is declared in
-`<webcpp/formats/regex.hpp>`, the one header of formats that includes it:
+`regex`: ECMA-262's `Pattern` in `u` mode, with ECMAScript 2025's modifiers,
+`+(?i:...)+`, and its duplicate group names, `+(?<y>...)|(?<y>...)+`. It is
+declared in `<webcpp/formats/regex.hpp>`, the one header of formats that
+brings Boost.Regex and the Unicode tables of ECMA-262's classes:
 `<webcpp/formats.hpp>` leaves it out, and a program that never validates a
-pattern does not compile an engine.
+pattern compiles neither.
 
-The verdict is the configured backend's: ECMA-262's `Pattern` in `u` mode
-on SRELL, the default, and on Boost.Regex; {cpp}'s ECMAScript on std::regex,
-which is not JSON Schema's `regex`
-(link:{webcpp-libs}/regex/{webcpp-page}#regex-choosing[choosing a backend]).
-webcpp::regex refuses SRELL's extensions `\A`, `\Z` and `\z`, which
-ECMA-262 refuses, and an escaped backslash before one (`\\A`) stays valid;
-a leading `(?i)` is refused too. A pattern that is not well-formed UTF-8 is
-refused, and a NUL is a literal like any other character.
+[source]
+----
+include::{examples}/formats_regex.cpp[tag=program,indent=0]
+----
 
-webcpp::regex also refuses a pattern past one of its bounds, nested deeper
-than `webcpp::regex::max_nesting` or with more alternatives than
-`webcpp::regex::max_alternatives`, its quantifiers counted, so that no
-engine's recursion overflows the 64 KiB stack of WebAssembly
-(link:{webcpp-libs}/regex/{webcpp-page}#regex-compiling[compiling]). Such a
-pattern is not judged: ECMA-262 may allow it, but no search of the program
-could use it, and `is_regex` answers `false`, as it does for a pattern
-ECMA-262 refuses.
+It prints:
 
-`is_regex(pattern, resource)` compiles in the memory of `resource` and gives
-it all back before returning; `is_regex(pattern)` uses the default
-resource. On another backend than SRELL, the compilation allocates as that
-backend does, which webcpp::regex's page tables.
+[listing]
+----
+include::{examples}/formats_regex.expected[]
+----
 
-A regex has no rule: webcpp::regex compiles a whole string and reports no
-position, so a rule could only consume all of its input, which composes
-with nothing.
+[#formats-regex-how]
+=== How a pattern is judged
+
+formats' translator reads the pattern as ECMA-262's grammar in `u` mode
+reads it, and refuses what ECMA-262 refuses there: Annex B's escapes and
+classes, `\a`, `\-` outside a class, `\8`, an octal escape; Perl's `\A`, `\Z`
+and `\z`; a group of another dialect, `+(?P<n>...)+`, `+(?#...)+`, a leading
+`(?i)`; a property ECMA-262 does not name, as `+\p{letter}+` or
+`+\p{Script=Foo}+`; a backreference to a group the pattern does not hold; two
+groups of one name that a match could both hold. A pattern that is not
+well-formed UTF-8 is refused, and a NUL is a literal like any other code
+point.
+
+It then writes the pattern in Boost.Regex's syntax, over code points, with
+ECMA-262's meaning: `.`, `^`, `$`, `\b`, the classes `\d`, `\w`, `\s` and
+`+\p{...}+`, case folding under `i`, and a backreference to a group that has
+not taken part, which matches the empty string. Boost.Regex 1.92 compiles
+the translation, with a traits class of formats' own whose classes are
+Unicode {unicode-version}'s General_Category, Script, Script_Extensions and
+the 53 binary properties ECMA-262 lists, read from tables generated into
+`<webcpp/formats/detail/regex_tables.hpp>`: no ICU and no `std::locale`
+(<<formats-regex-tables>>). A failure is Boost.Regex's status, never an
+exception: `is_regex` compiles with `no_except`.
+
+ECMA-262 allows a lookbehind of any width, `+(?<=\$\d*)+`, and Boost.Regex one
+width per lookbehind. The translator gives Boost.Regex what it can of one:
+each alternative of a lookbehind becomes a lookbehind of its own, and the
+leftmost quantifier of each needs only its least count, since a lookbehind is
+anchored at its right end. What still varies, Boost.Regex refuses; a pattern
+whose translation it refuses is valid when it compiles with each lookbehind
+written as a lookahead, which takes any width. No other refusal of
+Boost.Regex is an answer of ECMA-262's, and a pattern Boost.Regex refuses for
+any other reason is answered `false`; the comparison with V8 below has never
+met one.
+
+`is_regex` has no rule: a pattern has no grammar of its own inside a longer
+input, and Boost.Regex compiles a whole string.
+
+[#formats-regex-bounds]
+=== Bounds
+
+Three bounds keep a hostile pattern, which JSON Schema meets in an instance,
+from taking the stack, the memory or the time of a program. Past one of
+them, `is_regex` answers `false` without judging the pattern, though
+ECMA-262 may allow it:
+
+[%header,cols="2,1,5"]
+|===
+| Constant | Value | Bounds
+| `max_regex_length` | 65,536 | a pattern's bytes, refused before they are read: the translation and Boost.Regex's program take about 20 bytes for each code point
+| `max_regex_nesting` | 32 | groups, lookarounds and modifiers one inside the other: the translator and Boost.Regex's parser read a group by calling themselves
+| `max_regex_alternatives` | 4,096 | the `\|`, quantifiers and backreferences of the translation, each of which Boost.Regex keeps with a map of 256 bytes
+|===
+
+At its bounds, the deepest pattern needs about 20 KiB of the 64 KiB stack of
+a wasm32-wasip2 program built at `-O0`, and the slowest pattern measured, a
+class of 4,097 negated class escapes, is judged in about 0.1 s there,
+measured with wasi-sdk 34 and wasmtime 47 on 2026-10-12.
+
+[#formats-regex-allocation]
+=== What it allocates
+
+`is_regex` is the one function of formats that allocates outside the memory
+resource it is given. Its translator takes every allocation, the decoded
+pattern and its translation, from the resource given to
+`is_regex(pattern, resource)`, else from
+`std::pmr::get_default_resource()`, and gives it back before it returns.
+Boost.Regex's `basic_regex` has no allocator: its compilation allocates
+through the global `operator new`, between 5 and 11 times for each short
+pattern of formats' allocation test, on every target, and gives it all back
+before `is_regex` returns. A pattern the translator refuses never reaches
+Boost.Regex. So `<webcpp/formats/regex.hpp>` alone does not keep formats'
+rule that a validator allocates only through a resource it is given
+(<<formats-allocation>>).
+
+[#formats-regex-v8]
+=== Compared with V8
+
+A test of formats, `regex_v8`, compares `is_regex` with V8 on
+{n-regex-patterns} patterns, of which {n-regex-valid} are valid: those the
+study of Boost.Regex as an ECMA-262 engine drew at random from a grammar of
+atoms, groups, lookarounds, backreferences, quantifiers and defects; every
+name `+\p{...}+` accepts, under each of its forms, and the same names
+misspelt; every pattern the JSON-Schema-Test-Suite's schemas hold, in
+`pattern` and `patternProperties`, and every string of its tests of the
+format `regex`; and the edges the grammar does not draw. V8's verdict is
+`new RegExp(pattern, "u")` throwing a SyntaxError or not, written by the
+oracle of `test/oracle`, which runs the pinned Node, 26.7.0, whose V8 is
+14.6 and whose Unicode is 17.0. Every verdict of `is_regex` is V8's, on every
+target (<<formats-testing>>).
+
+[#formats-regex-tables]
+=== The Unicode tables
+
+`tools/generate_tables.py`, in formats' repository, writes
+`<webcpp/formats/detail/regex_tables.hpp>` from Unicode's data files of
+version {unicode-version}, pinned in `tools/unicode.json`, each by its URL
+under `\https://www.unicode.org/Public/{unicode-version}/` and its SHA-256: a
+file its cache lacks is downloaded, every file is hashed, and a digest that
+differs stops it before it writes anything. Before it writes, it checks what
+the translator and the traits assume of the data: General_Category has 30
+values that are no group; every value a file holds is one
+`PropertyValueAliases.txt` names; each of ECMA-262's binary properties holds
+a code point; every name is ASCII and names one value; the classes fit the
+traits' mask; and no simple case folding orbit holds more than four code
+points. A script that no code point has, Katakana_Or_Hiragana, gets no name,
+as ECMA-262's table of the values of Script leaves it out.
+`tools/generate_patterns.py` writes the patterns `regex_v8` reads, the same
+way.
+
+The own lane `generated` runs both generators again, into the build
+directory, and compares each output with the committed file, byte for byte;
+`update-generated` writes them in place, the one writer of the generated
+files. The ordinary lanes never run them, since a generator may need the
+network. The data are Unicode's, under the Unicode License v3, whose notice
+is in <<formats-unicode-data,the appendix "Unicode data">>.
+
+[source,bash]
+----
+b2 -a libs/formats/test//generated
+b2 libs/formats/test//update-generated
+----

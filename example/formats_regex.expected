@@ -1,0 +1,7 @@
+^\p{Letter}+$ -> valid
+(?<year>\d{4})-(?<month>\d{2}) -> valid
+(?<=\$\d*)[0-9] -> valid
+^(abc] -> invalid
+\Aabc\z -> invalid
+(?i)abc -> invalid
+(?i:abc) -> valid

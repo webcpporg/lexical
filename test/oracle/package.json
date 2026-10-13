@@ -1,0 +1,7 @@
+{
+  "name": "webcpp-formats-oracle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Asks V8, through Node, which patterns are ECMA-262 regular expressions in u mode, the verdicts formats' is_regex must give."
+}

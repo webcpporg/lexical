@@ -1,0 +1,42 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-suite]
+== The JSON Schema suite
+
+The official JSON-Schema-Test-Suite holds, for each draft, the format tests
+of `optional/format/`, and for v1 those of `format/`, which v1 requires. A
+program of formats' tests runs each string test against the validator of its
+format, on every target formats builds for: `is_time(s,
+leap_seconds::refused)` for v1's `time`, `is_relative_json_pointer(s,
+index_manipulation::refused)` for the relative JSON Pointers of drafts 7 and
+2019-09, and the same call in every other draft. A test whose instance is
+not a string checks json_schema's rule that a format applies to strings
+only, and the `unknown` format json_schema's handling of a format it does
+not know: neither is a question for a validator.
+
+[%header,cols="3,2,2"]
+|===
+| Dialect | String tests | Passing
+| draft 4 | {n-suite-draft4} | {n-suite-passed-draft4}
+| draft 6 | {n-suite-draft6} | {n-suite-passed-draft6}
+| draft 7 | {n-suite-draft7} | {n-suite-passed-draft7}
+| draft 2019-09 | {n-suite-draft2019-09} | {n-suite-passed-draft2019-09}
+| draft 2020-12 | {n-suite-draft2020-12} | {n-suite-passed-draft2020-12}
+| v1 | {n-suite-v1} | {n-suite-passed-v1}
+| all | {n-suite} | {n-suite-passed}
+|===
+
+A test expected to fail is listed in its dialect's known-failure list with
+its reason; the only reason allowed is a difference of Unicode versions,
+since idna's tables are those of Unicode {unicode-version}. Every list is
+empty. The program fails on a failure no list names, and on a listed test
+that passes.
+
+The suite's tests that need a regular expression to match, its `pattern`
+and `patternProperties` keywords, are json_schema's: formats does not search.
+Every pattern they hold is valid for `is_regex`, as for V8
+(<<formats-regex-v8>>).

@@ -1,0 +1,7 @@
+date-time 1985-04-12T23:20:50.52Z: valid
+date 2021-02-29: invalid
+email joe.bloggs@[IPv6:::1]: valid
+hostname xn--nxasmq6b.example: valid
+uri //example.com/p: invalid
+uri-reference //example.com/p: valid
+json-pointer /a~1b: valid

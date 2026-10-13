@@ -12,25 +12,38 @@ wasmtime, and on emscripten under node, from the superproject's root:
 
 [source,bash]
 ----
-b2 libs/formats/test
-b2 toolset=clang-wasip2 testing.launcher=wasmtime libs/formats/test
-b2 toolset=clang-wasip3 testing.launcher=wasmtime libs/formats/test
-b2 toolset=emscripten libs/formats/test
+b2 libs/formats/test libs/formats/example
+b2 toolset=clang-wasip2 testing.launcher=wasmtime libs/formats/test libs/formats/example
+b2 toolset=clang-wasip3 testing.launcher=wasmtime libs/formats/test libs/formats/example
+b2 toolset=emscripten libs/formats/test libs/formats/example
 ----
 
 Its {n-tests} tests are written with Boost's lightweight_test: each public
-header compiled alone, the configuration macro compiled twice, the terminals
-every format shares, the cases of each format, the rules composed with
-Boost.URL's combinators, what each validator allocates, and the run of the
-JSON Schema suite.
+header compiled alone, the configuration macro compiled three times, the
+terminals every format shares, the cases of each format, the rules composed
+with Boost.URL's combinators, what each validator allocates, the run of the
+JSON Schema suite's {n-suite} string tests (<<formats-suite>>), and the
+comparison of `is_regex` with V8 on {n-regex-patterns} patterns
+(<<formats-regex-v8>>). Its {n-examples} examples run on every target too,
+each compared with the output the page shows.
 
-The official JSON-Schema-Test-Suite's format tests run against the
-validators directly, in every draft from 4 to 2020-12 and v1: a string test
-passes when the validator's verdict is the test's. The runner fails on a
-failure its dialect's known-failure list does not name, and on a listed test
-that passes or that the suite does not hold. It runs on every target: the
-suite's own directory and formats' known-failure lists reach a WASI program
-through webcpp.data, the directory wasmtime is given with `--dir`.
+The suite's files, and formats' known-failure lists and patterns, reach a
+WASI program through webcpp.data, the directory wasmtime is given with
+`--dir`, and an emscripten program through node's file system.
+
+Two own lanes run apart from the targets', each natively. `oracle` asks V8,
+the pinned Node's, for its verdict on every pattern `regex_v8` reads, and
+compares them with the committed ones, which only `update-expected` writes;
+`generated` runs the generators of the Unicode tables and of the patterns
+again, and compares their outputs with the committed files
+(<<formats-regex-tables>>):
+
+[source,bash]
+----
+b2 -a libs/formats/test/oracle//oracle
+b2 -a libs/formats/test//generated
+b2 libs/formats/test/oracle//update-expected
+----
 
 The test matrix of every lane is published at
-https://webcpporg.github.io/webcpp/report/.
+https://webcpporg.github.io/report/.

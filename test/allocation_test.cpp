@@ -6,8 +6,9 @@
 
 // Tests what formats allocates, by counting every call of the global operator new this program
 // makes: nothing for every validator and rule, on long and hostile inputs, but the IRI functions
-// beyond their inline buffer and is_regex, which allocate only through the resource they are
-// given.
+// beyond their inline buffer, which allocate only through the resource they are given, and
+// is_regex, whose translator allocates only through its resource and whose Boost.Regex
+// compilation through the global operator new.
 
 #include <webcpp/formats/date_time.hpp>
 #include <webcpp/formats/email.hpp>
@@ -28,10 +29,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <limits>
 #include <memory_resource>
 #include <new>
 #include <string>
+#include <string_view>
 
 #ifdef _MSC_VER
 #include <malloc.h>
@@ -45,7 +48,7 @@ namespace {
 // it gave. They are mutable global state, which no library holds: this test program's own
 // instruments, the one place where the replaced operators below can record what they see. A
 // direct call of malloc, calloc or realloc is not counted: interposing them is outside this
-// test, as the plan's ruling on SRELL's allocations decided, and formats calls none of them.
+// test, and formats calls none of them.
 std::size_t global_new_calls = 0;     // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 std::size_t global_delete_calls = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -361,16 +364,72 @@ void idn_allocates_nothing() {
 }
 
 /**
- is_regex allocates only through the resource it is given: every global allocation of the call is
- one of the counting resource's own, which takes its memory from the global heap.
+ Every validator answers a hostile megabyte without a crash and without allocating, but through
+ the resources it is given: digits, a token, a label and a code point repeated a million times.
+ is_regex refuses one past max_regex_length before it reads it, and allocates nothing either.
 */
-void a_regex_allocates_only_through_its_resource() {
+void every_format_answers_a_megabyte() {
+    const std::string digits(std::size_t{1} << 20U, '7');
+    const std::string letters(std::size_t{1} << 20U, 'a');
+    std::string umlauts;
+    for (std::size_t i = 0; i < (std::size_t{1} << 19U); ++i) {
+        umlauts += "\303\274";
+    }
+    std::string braces;
+    for (std::size_t i = 0; i < (std::size_t{1} << 17U); ++i) {
+        braces += "{a,b}/x";
+    }
     webcpp::test::counting_resource resource;
     const std::size_t before = global_allocations();
-    BOOST_TEST(webcpp::formats::is_regex("(?<y>\\d{4})-(?<m>\\d{2})|\\p{Script=Greek}+", resource));
-    BOOST_TEST(!webcpp::formats::is_regex("^(abc]", resource));
-    BOOST_TEST_GT(resource.allocations, 0U);
+    namespace formats = webcpp::formats;
+    BOOST_TEST(!formats::is_date_time(digits));
+    BOOST_TEST(!formats::is_time(digits));
+    BOOST_TEST(!formats::is_duration(digits));
+    BOOST_TEST(!formats::is_uuid(letters));
+    BOOST_TEST(!formats::is_json_pointer(letters));
+    BOOST_TEST(formats::is_relative_json_pointer(digits));
+    BOOST_TEST(!formats::is_ipv4(digits));
+    BOOST_TEST(!formats::is_ipv6(digits));
+    BOOST_TEST(!formats::is_uri(letters));
+    BOOST_TEST(formats::is_uri_reference(letters));
+    BOOST_TEST(formats::is_iri_reference(umlauts, resource));
+    BOOST_TEST(formats::is_uri_template(braces));
+    BOOST_TEST(!formats::is_hostname(letters));
+    BOOST_TEST(!formats::is_idn_hostname(umlauts));
+    BOOST_TEST(!formats::is_email(letters));
+    BOOST_TEST(!formats::is_idn_email(umlauts));
+    BOOST_TEST(!formats::is_regex(letters, resource));
     BOOST_TEST_EQ(global_allocations() - before, resource.allocations);
+}
+
+/**
+ is_regex's translator allocates only through the resource it is given, and Boost.Regex's
+ compilation through the global operator new, which no resource reaches: a few times for each
+ short pattern, and all of it given back before is_regex returns. A pattern the translator refuses
+ never reaches Boost.Regex. (doc: #formats-allocation)
+*/
+void a_regex_allocates_through_its_resource_and_boost_regex() {
+    for (const std::string_view pattern : {
+             "a",
+             R"(^\p{Letter}+$)",
+             R"((?<y>\d{4})-(?<m>\d{2})|\p{Script=Greek}+)",
+             "(?<=a|bc)d",
+             R"([\D\S])",
+         }) {
+        webcpp::test::counting_resource resource;
+        const std::size_t before = global_allocations();
+        const std::size_t freed = global_deallocations();
+        BOOST_TEST(webcpp::formats::is_regex(pattern, resource));
+        const std::size_t boost_regex = global_allocations() - before - resource.allocations;
+        BOOST_TEST_GE(boost_regex, 1U);
+        BOOST_TEST_LE(boost_regex, 16U);
+        BOOST_TEST_EQ(global_deallocations() - freed, global_allocations() - before);
+        std::cout << pattern << ": " << boost_regex << " allocations of Boost.Regex\n";
+    }
+    webcpp::test::counting_resource refusals;
+    const std::size_t before = global_allocations();
+    BOOST_TEST(!webcpp::formats::is_regex("^(abc]", refusals));
+    BOOST_TEST_EQ(global_allocations() - before, refusals.allocations);
 }
 
 }  // namespace
@@ -387,6 +446,7 @@ int main() {
     hosts_allocate_nothing();
     iris_and_templates_allocate_within_their_bounds();
     idn_allocates_nothing();
-    a_regex_allocates_only_through_its_resource();
+    every_format_answers_a_megabyte();
+    a_regex_allocates_through_its_resource_and_boost_regex();
     return boost::report_errors();
 }

@@ -13,22 +13,21 @@
 #ifndef WEBCPP_FORMATS_CONFIG_HPP
 #define WEBCPP_FORMATS_CONFIG_HPP
 
-// Boost.Config says whether the build has exceptions, until webcpp::config exists. The migration
-// is one line here, this include becoming <webcpp/config.hpp>, with
-// <library>/webcpp/config//config added to build.jam's alias in the same commit.
-#include <boost/config.hpp>
+#include <webcpp/config.hpp>
 
 // MrDocs parses formats as a build with exceptions does, where the macro is not defined: this
-// definition, undone at once, is the one the reference lists.
+// definition, undone at once, is the one the reference lists, and the parse goes on with every API
+// that throws in it.
 #ifdef __MRDOCS__
 /**
- Defined when formats is built without exceptions: automatically when the compiler has none
- (`BOOST_NO_EXCEPTIONS`), or by the developer to disable them in a build that has them.
+ Defined when formats is built without exceptions: when webcpp has none (the compiler has none,
+ or the developer defined `WEBCPP_NO_EXCEPTIONS` for every webcpp library), or when the developer
+ defines it alone, to disable formats' in a build that has them.
 
  formats raises no exception of its own: a validator answers `false` and a rule returns its error,
  so the macro changes nothing in it. It is provided so that a program can set it for every webcpp
- library alike. Only a memory resource given to an IRI function or to `is_regex` may throw, and
- an exception formats raised would go through `boost::throw_exception`.
+ library alike. Only the memory an IRI function or `is_regex` allocates may throw, and an
+ exception formats raised would go through `boost::throw_exception`.
 
  @see "Errors", in the guide.
 */
@@ -36,7 +35,7 @@
 #undef WEBCPP_FORMATS_NO_EXCEPTIONS
 #endif
 
-#if defined(BOOST_NO_EXCEPTIONS) && !defined(WEBCPP_FORMATS_NO_EXCEPTIONS)
+#if !defined(WEBCPP_HAS_EXCEPTIONS) && !defined(WEBCPP_FORMATS_NO_EXCEPTIONS)
 #define WEBCPP_FORMATS_NO_EXCEPTIONS
 #endif
 

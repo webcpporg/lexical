@@ -1,0 +1,16 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-guarantees]
+== Guarantees
+
+. [[formats-invariant-1]]For every format but `regex`, `is_x(s)` and `parse(s, x_rule)` give the same answer for every string.
+. [[formats-invariant-2]]No function or rule allocates but those the allocation table names: the IRI functions only through a memory resource, and `is_regex` through its resource and Boost.Regex's compilation.
+. [[formats-invariant-3]]Nothing throws but an allocation that fails.
+. [[formats-invariant-4]]Every function refuses a string that is not well-formed UTF-8.
+. [[formats-invariant-5]]A rule that fails leaves its iterator where it was.
+. [[formats-invariant-6]]`is_regex` answers every byte string, a value: a pattern past one of its bounds is answered `false` before it can take more stack, memory or time than the bounds allow.
+. [[formats-invariant-7]]The Unicode tables and the patterns compared with V8 are what their generators write from the pinned files, byte for byte.

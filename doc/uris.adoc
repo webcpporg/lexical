@@ -56,7 +56,20 @@ The mapped URI needs contiguous storage. An ASCII IRI is parsed as it is,
 never copied; a non-ASCII one is mapped into a buffer of 1,024 octets on the
 stack, which holds any IRI of up to 341 octets; a longer one takes one buffer
 of its mapped length from the memory resource given to
-`is_iri(s, resource)`, or from `std::pmr::get_default_resource()`.
+`is_iri(s, resource)`, or from `std::pmr::get_default_resource()`. A resource
+of a program's own, here a buffer that refuses to grow:
+
+[source]
+----
+include::{examples}/formats_iri.cpp[tag=resource,indent=0]
+----
+
+It prints:
+
+[listing]
+----
+include::{examples}/formats_iri.expected[]
+----
 
 RFC 3986 3.2.2's IP literal holds an IPv6 address or an `IPvFuture`, and no
 zone identifier. RFC 6874 added one, `+http://[fe80::1%25eth0]/+`, which

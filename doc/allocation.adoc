@@ -1,0 +1,30 @@
+// Copyright (c) 2026 WebCpp.org
+//
+// Distributed under the Boost Software License, Version 1.0. (See
+// accompanying file LICENSE_1_0.txt or copy at
+// https://www.boost.org/LICENSE_1_0.txt)
+
+[#formats-allocation]
+== Allocation
+
+A validator and a rule allocate nothing, but where the table below says,
+and the IRI functions only through a memory resource. `is_regex` alone
+allocates outside one, through Boost.Regex (<<formats-regex-allocation>>):
+
+[%header,cols="3,5"]
+|===
+| Function or rule | Allocates
+| every validator and rule but those below | never: Boost.URL's views and formats' rules hold no storage, idna works in fixed storage, and a `range_rule` keeps its rule inline
+| `is_iri`, `is_iri_reference`, `iri_rule`, `iri_reference_rule` | never for an ASCII IRI or one whose mapped URI fits 1,024 octets; beyond, one buffer of the mapped length, from the resource given, else `std::pmr::get_default_resource()`
+| `is_regex` | its translator, only through the resource given, else the default resource; Boost.Regex's compilation, through the global `operator new`; all of it given back before it returns
+|===
+
+A test counts every call of the global `operator new` its program makes,
+over every validator and rule, on long and hostile inputs, a megabyte of
+each format among them, and finds none but those the table names, on every
+target.
+
+The stack holds the rest: an IRI's buffer of 1,024 octets, idna's working
+storage of a label, and the descent of `is_regex` into a pattern's groups,
+which its bounds keep within about 20 KiB of wasm32-wasip2's 64 KiB default stack
+at `-O0` (<<formats-regex-bounds>>).
