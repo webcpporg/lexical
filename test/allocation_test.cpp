@@ -6,9 +6,8 @@
 
 // Tests what formats allocates, by counting every call of the global operator new this program
 // makes: nothing for every validator and rule, on long and hostile inputs, but the IRI functions
-// beyond their inline buffer, which allocate only through the resource they are given, and
-// is_regex, whose translator allocates only through its resource and whose Boost.Regex
-// compilation through the global operator new.
+// beyond their inline buffer, which allocate only through the resource they are given. is_regex
+// allocates nothing at all, on valid, invalid and hostile patterns alike.
 
 #include <webcpp/formats/date_time.hpp>
 #include <webcpp/formats/email.hpp>
@@ -29,7 +28,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
 #include <limits>
 #include <memory_resource>
 #include <new>
@@ -398,38 +396,56 @@ void every_format_answers_a_megabyte() {
     BOOST_TEST(!formats::is_idn_hostname(umlauts));
     BOOST_TEST(!formats::is_email(letters));
     BOOST_TEST(!formats::is_idn_email(umlauts));
-    BOOST_TEST(!formats::is_regex(letters, resource));
+    BOOST_TEST(!formats::is_regex(letters));
     BOOST_TEST_EQ(global_allocations() - before, resource.allocations);
 }
 
+/** A pattern is_regex answers, and the verdict it is answered with. */
+struct regex_sample {
+    std::string_view pattern;
+    bool valid;
+};
+
+/** `levels` groups nested one inside the other around an `a`. */
+std::string nested_groups(std::size_t levels) {
+    return std::string(levels, '(') + "a" + std::string(levels, ')');
+}
+
 /**
- is_regex's translator allocates only through the resource it is given, and Boost.Regex's
- compilation through the global operator new, which no resource reaches: a few times for each
- short pattern, and all of it given back before is_regex returns. A pattern the translator refuses
- never reaches Boost.Regex. (doc: #formats-allocation)
+ is_regex allocates nothing, on valid patterns, invalid ones and hostile ones: at the nesting and
+ length bounds and past them, where it answers false without reading. The patterns are built
+ before the count starts.
 */
-void a_regex_allocates_through_its_resource_and_boost_regex() {
-    for (const std::string_view pattern : {
-             "a",
-             R"(^\p{Letter}+$)",
-             R"((?<y>\d{4})-(?<m>\d{2})|\p{Script=Greek}+)",
-             "(?<=a|bc)d",
-             R"([\D\S])",
-         }) {
-        webcpp::test::counting_resource resource;
+void a_regex_allocates_nothing() {
+    const std::string at_bound = nested_groups(webcpp::formats::max_regex_nesting);
+    const std::string beyond_bound = nested_groups(webcpp::formats::max_regex_nesting + 1);
+    const std::string longest(webcpp::formats::max_regex_length, 'a');
+    const std::string too_long(webcpp::formats::max_regex_length + 1, 'a');
+    const std::string hostile(10'000, '(');
+    const regex_sample samples[] = {
+        {"a", true},
+        {R"(^\p{Letter}+$)", true},
+        {R"((?<y>\d{4})-(?<m>\d{2})|\p{Script=Greek}+)", true},
+        {"(?<=a|bc)d", true},
+        {R"([\D\S])", true},
+        {"(?i:k)(?<n>a)|(?<n>b)\\k<n>", true},
+        {"^(abc]", false},
+        {"a{3,1}", false},
+        {"\\k<m>(?<n>a)", false},
+        {"\\p{Greek}", false},
+        {at_bound, true},
+        {beyond_bound, false},
+        {longest, true},
+        {too_long, false},
+        {hostile, false},
+    };
+    for (const regex_sample& sample : samples) {
         const std::size_t before = global_allocations();
         const std::size_t freed = global_deallocations();
-        BOOST_TEST(webcpp::formats::is_regex(pattern, resource));
-        const std::size_t boost_regex = global_allocations() - before - resource.allocations;
-        BOOST_TEST_GE(boost_regex, 1U);
-        BOOST_TEST_LE(boost_regex, 16U);
-        BOOST_TEST_EQ(global_deallocations() - freed, global_allocations() - before);
-        std::cout << pattern << ": " << boost_regex << " allocations of Boost.Regex\n";
+        BOOST_TEST_EQ(webcpp::formats::is_regex(sample.pattern), sample.valid);
+        BOOST_TEST_EQ(global_allocations() - before, 0U);
+        BOOST_TEST_EQ(global_deallocations() - freed, 0U);
     }
-    webcpp::test::counting_resource refusals;
-    const std::size_t before = global_allocations();
-    BOOST_TEST(!webcpp::formats::is_regex("^(abc]", refusals));
-    BOOST_TEST_EQ(global_allocations() - before, refusals.allocations);
 }
 
 }  // namespace
@@ -447,6 +463,6 @@ int main() {
     iris_and_templates_allocate_within_their_bounds();
     idn_allocates_nothing();
     every_format_answers_a_megabyte();
-    a_regex_allocates_through_its_resource_and_boost_regex();
+    a_regex_allocates_nothing();
     return boost::report_errors();
 }

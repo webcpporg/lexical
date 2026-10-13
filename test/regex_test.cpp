@@ -4,25 +4,25 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// ECMA-262 patterns in u mode, read by formats' translator and compiled by Boost.Regex: what
-// ECMA-262 refuses in u mode refused (Annex B's escapes, Perl's \A, \Z and \z, a leading (?i)),
-// ECMAScript 2025's modifiers and duplicate group names, lookbehinds of any width, ill-formed
-// UTF-8 refused and NUL a literal, the Unicode 17 tables the classes read, what the translator
-// writes, and hostile patterns answered as values on every target: nested up to
-// max_regex_nesting and refused past it, wide and long ones judged.
+// ECMA-262 patterns in u mode, read by formats' validator: alternatives and empty patterns,
+// assertions, quantifiers and braces, groups with their names, ECMAScript 2025's modifiers and
+// duplicate group names, lookarounds of any width, every escape and backreference, classes and
+// their ranges, Unicode properties, ill-formed UTF-8 refused and NUL a literal, the Unicode 17
+// names the properties are read from, and hostile patterns answered as values: nested up to
+// max_regex_nesting and refused past it, wide and long ones judged up to max_regex_length.
 
+#include <webcpp/formats/detail/regex_tables.hpp>
+#include <webcpp/formats/detail/regex_unicode.hpp>
+#include <webcpp/formats/detail/regex_validator.hpp>
 #include <webcpp/formats/regex.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
 #include <cstddef>
 #include <iostream>
-#include <memory_resource>
 #include <string>
 #include <string_view>
 #include <utility>
-
-#include "counting_resource.hpp"
 
 namespace formats = webcpp::formats;
 namespace detail = webcpp::formats::detail;
@@ -30,100 +30,142 @@ namespace tables = webcpp::formats::detail::regex_tables;
 
 namespace {
 
+using regex_verdict = detail::regex_verdict;
+
 void regex(std::string_view pattern, bool valid) {
     if (!BOOST_TEST_EQ(formats::is_regex(pattern), valid)) {
         std::cerr << "regex: \"" << pattern << "\"\n";
     }
 }
 
-/** What the translator writes for `pattern`, each code point above ASCII as `?`, or its verdict. */
-std::string translated(std::string_view pattern) {
-    const detail::regex_translation t = detail::translate_regex(
-        pattern,
-        {.nesting = formats::max_regex_nesting, .alternatives = formats::max_regex_alternatives},
-        *std::pmr::get_default_resource());
-    if (t.verdict == detail::regex_verdict::invalid) {
-        return "invalid";
+/** A string of `count` copies of `unit`. */
+std::string repeated(std::string_view unit, std::size_t count) {
+    std::string text;
+    text.reserve(unit.size() * count);
+    for (std::size_t i = 0; i < count; ++i) {
+        text += unit;
     }
-    if (t.verdict == detail::regex_verdict::beyond_bounds) {
-        return "beyond bounds";
-    }
-    std::string ascii;
-    for (const char32_t c : t.pattern) {
-        ascii.push_back(c < 0x80 ? static_cast<char>(c) : '?');
-    }
-    return ascii;
+    return text;
 }
 
-void ecma_262_patterns() {
-    regex("^[a-z]+$", true);
-    regex("\\p{Letter}+", true);
-    regex("(?<year>\\d{4})-(?<month>\\d{2})", true);
-    regex("^(abc]", false);
-    regex("a{,5}", false);
-    regex("a++", false);
-    regex("a{2,1}", false);
-    regex("[[:alpha:]]", false);
-    regex("[z-a]", false);
-    regex("[\\d-z]", false);
-    regex("(?i:a)b", true);
+/** `open` nested `levels` times around `a`, each level closed by `close`. */
+std::string nested(std::string_view open, std::string_view close, std::size_t levels) {
+    return repeated(open, levels) + "a" + repeated(close, levels);
+}
+
+/** The verdict check_regex gives `pattern`, and a why exactly when the verdict is not valid. */
+void judged(std::string_view pattern, regex_verdict verdict,
+            std::size_t max_nesting = formats::max_regex_nesting) {
+    const detail::regex_check check = detail::check_regex(pattern, max_nesting);
+    const bool verdict_held = BOOST_TEST(check.verdict == verdict);
+    const bool why_held = BOOST_TEST_EQ(check.why.empty(), verdict == regex_verdict::valid);
+    if (!verdict_held || !why_held) {
+        std::cerr << "check_regex: \"" << pattern << "\" with nesting " << max_nesting << '\n';
+    }
+}
+
+void alternatives_and_empty_patterns() {
     regex("", true);
-    regex("\\1(a)", true);
-    regex("(a\\1)", true);
-    regex("\\2(a)", false);
-    regex("\\k<n>(?<n>a)", true);
-    regex("\\k<m>(?<n>a)", false);
-    regex("(?<1a>x)", false);
-    regex(R"((?<a\u0062>x)\k<ab>)", true);
-    regex(R"(\u{1F432}\uD83D\uDC32\x61\u00e9\cJ\0)", true);
-    regex("\\u{110000}", false);
-    regex("[]", true);
-    regex("[^]", true);
-    regex("[\\b]\\B", true);
-    regex("(?=a)*", false);
-    regex("(?<=a)?", false);
-    regex("\\b+", false);
+    regex("|", true);
+    regex("||", true);
+    regex("a|", true);
+    regex("|a", true);
+    regex("a|b|c", true);
+    regex("a||b", true);
+    regex("(|)", true);
+    regex("(?:)", true);
+    regex("()", true);
+    regex("a|(b|c)|d", true);
+    regex("(?:|a)*", true);
+    regex("a)|b", false);
+    regex("(a|b", false);
+    regex("|*", false);
+    regex("a|+", false);
 }
 
-void annex_b_and_other_dialects_are_refused() {
-    regex("\\A", false);
-    regex("abc\\Z", false);
-    regex("abc\\z", false);
-    regex("[\\z]", false);
-    regex("\\\\A", true);
-    regex(R"(\\\A)", false);
-    regex("(?i)abc", false);
-    regex("\\a", false);
-    regex("\\-", false);
-    regex("[\\-]", true);
-    regex("\\01", false);
-    regex("\\8", false);
-    regex("[\\1]", false);
-    regex("\\c", false);
-    regex("\\x1", false);
-    regex("\\u12", false);
+void assertions() {
+    regex("^", true);
+    regex("$", true);
+    regex("^$", true);
+    regex("\\b", true);
+    regex("\\B", true);
+    regex("^\\b\\w+\\B$", true);
+    regex("a^b$c", true);
+    regex("(^)($)", true);
+    regex("^a|b$", true);
+    regex("^*", false);
+    regex("$+", false);
+    regex("\\b*", false);
+    regex("\\B{2}", false);
+    regex("^{1}", false);
+    regex("$?", false);
+    regex("a^?", false);
+}
+
+void quantifiers_and_braces() {
+    regex("a*", true);
+    regex("a+", true);
+    regex("a?", true);
+    regex("a{0}", true);
+    regex("a{3}", true);
+    regex("a{2,}", true);
+    regex("a{2,3}", true);
+    regex("a{0,0}", true);
+    regex("a*?", true);
+    regex("a+?", true);
+    regex("a??", true);
+    regex("a{2,3}?", true);
+    regex("(ab)+", true);
+    regex("a{1}b{2,}c*", true);
+    regex("a{,5}", false);
+    regex("a{2,1}", false);
+    regex("a{3,1}", false);
+    regex("a{", false);
+    regex("a{}", false);
+    regex("a{x}", false);
+    regex("a{1,2", false);
+    regex("a{1 }", false);
     regex("{", false);
     regex("}", false);
-    regex("]", false);
-    regex("\\pL", false);
-    regex("\\p{letter}", false);
-    regex("(?P<n>x)", false);
-    regex("(?#comment)", false);
-    regex("\\q", false);
+    regex("a}", false);
+    regex("{1}", false);
+    regex("a|{1}", false);
+    regex("a**", false);
+    regex("a+*", false);
+    regex("a???", false);
+    regex("a{1}{2}", false);
+    regex("a++", false);
+    regex("\\{", true);
+    regex("\\}", true);
+    regex("a\\{1\\}", true);
+    regex("a\\{1}", false);
 }
 
-void modifiers() {
-    regex("(?i:a)", true);
-    regex("(?-i:a)", true);
-    regex("(?i-:a)", true);
-    regex("(?ims-:a)", true);
-    regex("(?i-m:a)", true);
-    regex("(?-:a)", false);
-    regex("(?ii:a)", false);
-    regex("(?i-i:a)", false);
-    regex("(?i-s-m:a)", false);
-    regex("(?x:a)", false);
-    regex("(?i)", false);
+void groups_and_names() {
+    regex("(a)", true);
+    regex("(?:a)", true);
+    regex("((a))", true);
+    regex("(a)(b)(c)", true);
+    regex("(?<n>a)", true);
+    regex("(?<$>a)", true);
+    regex("(?<_a1>x)", true);
+    regex("(?<\\u{61}>x)", true);
+    regex("(?<\303\261>x)", true);
+    regex(R"((?<a\uD835\uDC9C>x))", true);
+    regex("(a", false);
+    regex("a)", false);
+    regex("(?:a", false);
+    regex("(?", false);
+    regex("(?x)", false);
+    regex("(?<n>", false);
+    regex("(?<>a)", false);
+    regex("(?<1>a)", false);
+    regex("(?<\\u0030a>x)", false);
+    regex("(?<a-b>x)", false);
+    regex("(?<a b>x)", false);
+    regex("(?<a>x", false);
+    regex("(?P<n>a)", false);
+    regex("(?#comment)", false);
 }
 
 void duplicate_group_names() {
@@ -138,7 +180,35 @@ void duplicate_group_names() {
     regex("(?<n>a)|(?<=(?<n>b))", true);
 }
 
-void lookbehinds_of_any_width() {
+void modifiers() {
+    regex("(?i:a)", true);
+    regex("(?-i:a)", true);
+    regex("(?i-:a)", true);
+    regex("(?ims-:a)", true);
+    regex("(?i-m:a)", true);
+    regex("(?m:^a$)", true);
+    regex("(?s:.)", true);
+    regex("(?i:(?-i:a))", true);
+    regex("(?-:a)", false);
+    regex("(?ii:a)", false);
+    regex("(?i-i:a)", false);
+    regex("(?i-s-m:a)", false);
+    regex("(?x:a)", false);
+    regex("(?i)", false);
+    regex("(?i", false);
+    regex("(?i:a", false);
+}
+
+void lookarounds() {
+    regex("(?=a)", true);
+    regex("(?!a)", true);
+    regex("(?<=a)", true);
+    regex("(?<!a)", true);
+    regex("a(?=b)c", true);
+    regex("(?=(a))\\1", true);
+    regex("(?=)", true);
+    regex("(?<=)", true);
+    regex("(?<!)", true);
     regex("(?<=\\$\\d*)x", true);
     regex("(?<=a+)b", true);
     regex("(?<=a|bc)d", true);
@@ -147,153 +217,232 @@ void lookbehinds_of_any_width() {
     regex("(?<=(a))\\1", true);
     regex("(?<=\\1(a))b", true);
     regex("(?<=a*)d", true);
+    regex("(?=a)*", false);
+    regex("(?!a)+", false);
+    regex("(?<=a)?", false);
+    regex("(?<!a){2}", false);
+    regex("(?<=a)*", false);
+    regex("(?=a", false);
+    regex("(?<=a", false);
+    regex("(?<!a", false);
 }
 
-void utf8_and_nul() {
-    regex("caf\303\251", true);
-    regex("\360\237\220\262+", true);
-    regex("caf\303", false);
-    regex("a\300\257", false);
-    regex("\355\240\200", false);
-    regex(std::string_view("a\0b", 3), true);
-    regex(std::string_view("[\0-a]", 5), true);
+void escapes() {
+    regex(R"(\d\D\w\W\s\S)", true);
+    regex(R"(\t\n\v\f\r\0)", true);
+    regex(R"(\cA\cz)", true);
+    regex(R"(\x41\x4a\xFF)", true);
+    regex(R"(\x4)", false);
+    regex(R"(\xG1)", false);
+    regex(R"(\x)", false);
+    regex(R"(\u0041\u00e9)", true);
+    regex(R"(\u004)", false);
+    regex(R"(\u)", false);
+    regex(R"(\uD83D\uDE00)", true);
+    regex(R"(\uD83D)", true);
+    regex(R"(\u{41}\u{1F600})", true);
+    regex(R"(\u{})", false);
+    regex(R"(\u{41)", false);
+    regex(R"(\u{110000})", false);
+    regex(R"(\c)", false);
+    regex(R"(\c1)", false);
+    regex(R"(\c_)", false);
+    regex(R"(\0)", true);
+    regex(R"(\00)", false);
+    regex(R"(\01)", false);
+    regex(R"(\8)", false);
+    regex(R"(\9)", false);
+    regex(R"(a\)", false);
+    regex(R"(\^\$\\\.\*\+\?\(\)\[\]\{\}\|\/)", true);
+    regex(R"(\-)", false);
+    regex(R"(\a)", false);
+    regex(R"(\q)", false);
+    regex(R"(\_)", false);
+    regex(R"(\ )", false);
+    regex(R"(\')", false);
+    regex(R"(\")", false);
+    regex(R"(\:)", false);
+    regex(R"(\@)", false);
+    regex(R"(\#)", false);
+    regex(R"(\<)", false);
+    regex(R"(\N)", false);
+    regex(R"(\h)", false);
+    regex(R"(\e)", false);
+    regex(R"(\G)", false);
+    regex(R"(\K)", false);
+    regex(R"(\i)", false);
+    regex(R"(\A)", false);
+    regex(R"(abc\Z)", false);
+    regex(R"(abc\z)", false);
+    regex(R"(\\A)", true);
+    regex(R"(\\\A)", false);
+    regex(R"([\b])", true);
+    regex(R"([\-])", true);
+    regex(R"([\^\]\\])", true);
+    regex(R"([\0])", true);
+    regex(R"([\00])", false);
+    regex(R"([\B])", false);
+    regex(R"([\k])", false);
+    regex(R"([\c])", false);
+    regex(R"([\a])", false);
+    regex(R"([\1])", false);
+    regex(R"([\z])", false);
+}
+
+void backreferences() {
+    regex("(a)\\1", true);
+    regex("\\1(a)", true);
+    regex("(a)|\\1", true);
+    regex("(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)\\10", true);
+    regex("\\1", false);
+    regex("(?:a)\\1", false);
+    regex("(a)\\2", false);
+    regex("(a)\\10", false);
+    regex("\\k<n>(?<n>a)", true);
+    regex("(?<n>a\\k<n>)", true);
+    regex("(?<n>a)\\k<n>", true);
+    regex("(?<a>x)\\k<a>(?<b>y)\\k<b>", true);
+    regex("\\k<m>(?<n>a)", false);
+    regex("\\k<n>", false);
+    regex("\\k", false);
+    regex("\\k<>", false);
+    regex("\\k<n", false);
+    regex("(?<n>a)\\k", false);
+    regex("(a)\\k<a>", false);
+    regex("[\\1]", false);
+    regex("[\\k<n>]", false);
+}
+
+void classes() {
+    regex("[a]", true);
+    regex("[^a]", true);
+    regex("[]", true);
+    regex("[^]", true);
+    regex("[a-z]", true);
+    regex("[a-z0-9_]", true);
+    regex("[-a]", true);
+    regex("[a-]", true);
+    regex("[a-a]", true);
+    regex("[\\u0061-\\u0062]", true);
+    regex("[\\x61-b]", true);
+    regex("[\\cA-\\cZ]", true);
+    regex("[\\b-z]", true);
+    regex("[\\-]", true);
+    regex("[\\d\\D\\s\\S\\w\\W]", true);
+    regex("[\\b\\-\\]\\\\]", true);
+    regex("[[]", true);
+    regex("[(){}|]", true);
+    regex("[a&&b]", true);
+    regex("[]a]", false);
+    regex("[^]a]", false);
+    regex("[", false);
+    regex("[a", false);
+    regex("[^", false);
+    regex("[\\]", false);
+    regex("]", false);
+    regex("[z-a]", false);
+    regex("[b-a]", false);
+    regex("[\\d-z]", false);
+    regex("[a-\\d]", false);
+    regex("[\\w-.]", false);
+    regex("[\\D-z]", false);
+    regex("[\\p{L}-z]", false);
 }
 
 void unicode_properties() {
     regex(R"(\p{L}\p{Lu}\p{gc=Lu}\p{General_Category=Uppercase_Letter})", true);
     regex(R"(\p{Script=Greek}\p{sc=Grek}\p{scx=Grek}\p{Script_Extensions=Greek})", true);
     regex(R"(\p{Script=Sidetic}\p{sc=Tai_Yo})", true);
-    regex(R"(\p{ASCII}\p{Any}\p{Assigned}\p{ID_Start}\p{IDS}\p{Lower})", true);
+    regex(R"(\p{ASCII}\p{Any}\p{Assigned}\p{ID_Start}\p{IDS}\p{Lower}\p{Emoji})", true);
+    regex(R"(\p{digit}\p{cntrl}\p{punct})", true);
     regex(R"(\P{L}[\p{L}\d][^\p{L}a])", true);
-    regex("\\p{Script=L}", false);
-    regex("\\p{General_Category=Greek}", false);
-    regex("\\p{sc=Foo}", false);
-    regex("\\p{Greek}", false);
-    regex("\\p{Lu=Lu}", false);
-    regex("\\p{}", false);
-    regex("\\p{L", false);
+    regex(R"([\p{Script=Greek}a])", true);
+    regex(R"(\p{Script=L})", false);
+    regex(R"(\p{General_Category=Greek})", false);
+    regex(R"(\p{sc=Foo})", false);
+    regex(R"(\p{Greek})", false);
+    regex(R"(\p{Lu=Lu})", false);
+    regex(R"(\p{ID_Start=Yes})", false);
+    regex(R"(\p{Script_Extensions})", false);
+    regex(R"(\p{lu})", false);
+    regex(R"(\p{ L})", false);
+    regex(R"(\p{L })", false);
+    regex(R"(\p{})", false);
+    regex(R"(\p{L)", false);
+    regex(R"(\p)", false);
+    regex(R"(\pL)", false);
+    regex(R"(\P{})", false);
+    regex(R"(\p{letter})", false);
     regex("\\p{\303\251}", false);
     regex("\\p{" + std::string(200, 'L') + "}", false);
 }
 
-/** The bit of the class `name` names among `names`, after `first`. */
-template <class Names, class Values>
-std::size_t bit_of(std::size_t first, std::string_view name, const Names& names,
-                   const Values& values) {
-    return first + detail::find_name(names, values, name).value_or(9999);
+void utf8_and_nul() {
+    regex("caf\303\251", true);
+    regex("\360\237\220\262+", true);
+    regex("[\360\237\220\262-\360\237\220\263]", true);
+    regex("caf\303", false);
+    regex("\377", false);
+    regex("\200", false);
+    regex("a\300\257", false);
+    regex("\340\200\257", false);
+    regex("\355\240\200", false);
+    regex("\364\220\200\200", false);
+    regex(std::string_view("a\0b", 3), true);
+    regex(std::string_view("[\0-a]", 5), true);
 }
 
-/** The tables of Unicode 17.0.0 the classes read, at code points whose properties are known. */
 void the_tables() {
     BOOST_TEST_EQ(tables::unicode_version, "17.0.0");
-    const std::size_t lu = bit_of(tables::first_general_category, "Lu",
-                                  tables::general_category_names, tables::general_category_values);
-    const std::size_t letter =
-        bit_of(tables::first_general_category, "Letter", tables::general_category_names,
-               tables::general_category_values);
-    const std::size_t greek =
-        bit_of(tables::first_script, "Greek", tables::script_names, tables::script_values);
-    const std::size_t greek_extended = bit_of(tables::first_script_extensions, "Grek",
-                                              tables::script_names, tables::script_values);
-    BOOST_TEST(detail::in_class(lu, U'A'));
-    BOOST_TEST(!detail::in_class(lu, U'a'));
-    BOOST_TEST(detail::in_class(letter, U'a'));
-    BOOST_TEST(detail::in_class(letter, U'\u03C0'));
-    BOOST_TEST(!detail::in_class(letter, U'1'));
-    BOOST_TEST(detail::in_class(greek, U'\u03A0'));
-    // U+0342, COMBINING GREEK PERISPOMENI, is of the script Inherited, and Greek by its
-    // extensions.
-    BOOST_TEST(!detail::in_class(greek, U'\u0342'));
-    BOOST_TEST(detail::in_class(greek_extended, U'\u0342'));
-    BOOST_TEST(!detail::in_class(greek_extended, U'a'));
-    BOOST_TEST(detail::has_binary(tables::binary::id_start, U'a'));
-    BOOST_TEST(!detail::has_binary(tables::binary::id_start, U'1'));
-    BOOST_TEST(detail::has_binary(tables::binary::emoji, U'\U0001F432'));
-    BOOST_TEST(detail::has_binary(tables::binary::ascii, U'\x7F'));
-    BOOST_TEST(!detail::has_binary(tables::binary::ascii, U'\x80'));
-    BOOST_TEST(detail::has_binary(tables::binary::any, U'\U0010FFFF'));
-    BOOST_TEST(!detail::has_binary(tables::binary::assigned, U'\U0010FFFF'));
-    BOOST_TEST(detail::in_class(static_cast<std::size_t>(detail::own_class::space), U'\uFEFF'));
-    BOOST_TEST(!detail::in_class(static_cast<std::size_t>(detail::own_class::space), U'\u0085'));
-    BOOST_TEST(detail::in_class(static_cast<std::size_t>(detail::own_class::word), U'_'));
-    BOOST_TEST(!detail::in_class(static_cast<std::size_t>(detail::own_class::word), U'\u017F'));
-    BOOST_TEST(detail::simple_fold(U'K') == U'k');
-    BOOST_TEST(detail::simple_fold(U'\u212A') == U'k');
-    BOOST_TEST(detail::simple_fold(U'\u017F') == U's');
-    BOOST_TEST(detail::simple_fold(U'1') == U'1');
-    const detail::case_orbit k = detail::orbit_of(U'k');
-    BOOST_TEST_EQ(k.size, 3U);
-    BOOST_TEST(k.code_points[0] == U'k');
-    BOOST_TEST_EQ(detail::orbit_of(U'1').size, 1U);
+    BOOST_TEST(detail::has_name(tables::general_category_names, "Lu"));
+    BOOST_TEST(detail::has_name(tables::general_category_names, "Uppercase_Letter"));
+    BOOST_TEST(!detail::has_name(tables::general_category_names, "Greek"));
+    BOOST_TEST(detail::has_name(tables::script_names, "Greek"));
+    BOOST_TEST(detail::has_name(tables::script_names, "Grek"));
+    BOOST_TEST(!detail::has_name(tables::script_names, "Lu"));
+    BOOST_TEST(detail::has_name(tables::binary_names, "Emoji"));
+    BOOST_TEST(!detail::has_name(tables::binary_names, "Letter"));
+    BOOST_TEST(detail::in_ranges(tables::id_start, U'a'));
+    BOOST_TEST(!detail::in_ranges(tables::id_start, U'1'));
+    BOOST_TEST(detail::in_ranges(tables::id_continue, U'1'));
+    BOOST_TEST(detail::is_name_start(U'$'));
+    BOOST_TEST(!detail::is_name_start(U'1'));
+    BOOST_TEST(detail::is_name_part(U'\u200C'));
+    BOOST_TEST(!detail::is_name_part(U'-'));
 }
 
-/** The class a name gives, through Boost's own interface of the traits. */
-detail::class_mask class_named(std::u32string_view name) {
-    return detail::regex_traits::lookup_classname(name.data(), name.data() + name.size());
+void the_verdicts() {
+    judged("", regex_verdict::valid);
+    judged("(?<n>a)\\k<n>", regex_verdict::valid);
+    judged("a", regex_verdict::valid, 0);
+    judged("(a)", regex_verdict::valid, 1);
+    judged("(a)", regex_verdict::beyond_bounds, 0);
+    judged("((a))", regex_verdict::beyond_bounds, 1);
+    judged("((a))", regex_verdict::valid, 2);
+    judged(nested("(", ")", formats::max_regex_nesting), regex_verdict::valid);
+    judged(nested("(", ")", formats::max_regex_nesting + 1), regex_verdict::beyond_bounds);
+    // The reader's own limit holds whatever nesting the caller asks for.
+    judged(nested("(", ")", 65), regex_verdict::beyond_bounds, 1000);
+    judged("a)", regex_verdict::invalid);
+    judged("(a", regex_verdict::invalid);
+    judged("\\1", regex_verdict::invalid);
+    judged("a{3,1}", regex_verdict::invalid);
+    judged("\\u{110000}", regex_verdict::invalid);
+    judged("\303", regex_verdict::invalid);
+    static_assert(detail::check_regex("(?<n>a)\\k<n>", formats::max_regex_nesting).verdict ==
+                      regex_verdict::valid,
+                  "check_regex is constexpr");
+    static_assert(detail::check_regex("a{3,1}", formats::max_regex_nesting).verdict ==
+                      regex_verdict::invalid,
+                  "check_regex is constexpr");
+    static_assert(noexcept(formats::is_regex(std::string_view{})), "is_regex does not throw");
+    static_assert(noexcept(detail::check_regex(std::string_view{}, 0)),
+                  "check_regex does not throw");
+    static_assert(formats::max_regex_nesting >= 32, "the nesting bound is at least 32");
 }
 
-/** Boost.Regex's traits: the classes Boost names, the translator's #n, and ignoreCase's orbits. */
-void the_traits() {
-    using traits = detail::regex_traits;
-    BOOST_TEST(class_named(U"w") ==
-               detail::class_mask::of(static_cast<std::size_t>(detail::own_class::word)));
-    BOOST_TEST(class_named(U"#99999") == 0);
-    BOOST_TEST(class_named(U"word") == 0);
-    // Under ignoreCase \W refuses U+017F, whose orbit holds s, a word character; \w takes it.
-    const detail::class_mask word_closed = class_named(U"#0i");
-    const detail::class_mask not_word_closed = class_named(U"#0x");
-    BOOST_TEST(traits::isctype(U'\u017F', word_closed));
-    BOOST_TEST(!traits::isctype(U'\u017F', not_word_closed));
-    BOOST_TEST(traits::isctype(U'-', not_word_closed));
-    // \P{Ll} under ignoreCase takes a, whose orbit holds A, outside Ll.
-    const std::size_t ll = bit_of(tables::first_general_category, "Ll",
-                                  tables::general_category_names, tables::general_category_values);
-    const std::u32string not_lowercase =
-        U"#" + std::u32string(1, static_cast<char32_t>(U'0' + (ll / 10))) +
-        std::u32string(1, static_cast<char32_t>(U'0' + (ll % 10))) + U"n";
-    BOOST_TEST(traits::isctype(U'a', class_named(not_lowercase)));
-    BOOST_TEST(traits::translate_nocase(U'\u212A') == U'k');
-    BOOST_TEST_EQ(traits::value(U'f', 16), 15);
-    BOOST_TEST_EQ(traits::value(U'f', 10), -1);
-}
-
-/** A string of `count` copies of `unit`. */
-std::string repeated(std::string_view unit, std::size_t count) {
-    std::string text;
-    text.reserve(unit.size() * count);
-    for (std::size_t i = 0; i < count; ++i) {
-        text += unit;
-    }
-    return text;
-}
-
-/** What the translator writes: Boost's perl syntax with ECMA-262's meaning. */
-void the_translation() {
-    BOOST_TEST_EQ(translated("ab_1"), "ab_1");
-    BOOST_TEST_EQ(translated("a.b"), "a[^\\x{A}\\x{D}\\x{2028}\\x{2029}]b");
-    BOOST_TEST_EQ(translated("(?s:.)"), "(?:[\\x{0}-\\x{10FFFF}])");
-    BOOST_TEST_EQ(translated("^a$"), "\\Aa\\z");
-    BOOST_TEST_EQ(translated("(?m:^)"), "(?:(?:\\A|(?<=[\\x{A}\\x{D}\\x{2028}\\x{2029}])))");
-    BOOST_TEST_EQ(translated("a{2,}?"), "a{2,}?");
-    BOOST_TEST_EQ(translated("\\d\\W"), "[[:#2:]][[:^#0:]]");
-    BOOST_TEST_EQ(translated("[\\D\\S]"), "(?:[[:^#2:]]|[[:^#1:]])");
-    BOOST_TEST_EQ(translated("[^a-c]"), "[^\\x{61}-\\x{63}]");
-    BOOST_TEST_EQ(translated("(a)\\1"), "(a)(?(1)\\g{1})");
-    BOOST_TEST_EQ(translated("(?<n>a)|(?<n>b)\\k<n>"), "(a)|(b)(?:(?(1)\\g{1})(?(2)\\g{2}))");
-    BOOST_TEST_EQ(translated("(?<=a+b|c)d"), "(?:(?<=ab)|(?<=c))d");
-    BOOST_TEST_EQ(translated("(?<=a*)d"), "(?<=)d");
-    BOOST_TEST_EQ(translated("\\u{1F432}"), "?");
-    BOOST_TEST_EQ(translated("\\("), "\\x{28}");
-    BOOST_TEST_EQ(translated("(?i:k)"), "(?i:k)");
-    BOOST_TEST_EQ(translated("(?<"), "invalid");
-    BOOST_TEST_EQ(translated(std::string(formats::max_regex_nesting + 1, '(')), "beyond bounds");
-    BOOST_TEST_EQ(translated(repeated("a?", formats::max_regex_alternatives + 1)), "beyond bounds");
-}
-
-/**
- Each kind of group nested max_regex_nesting deep is judged, and one level deeper is refused
- without being judged, a value on every target; side by side, wide and long patterns are judged.
-*/
+// The patterns past the bounds are valid in V8 and refused here by design: the bounds are the
+// library's, so that a hostile pattern cannot exhaust a WebAssembly program's stack or memory.
 void hostile_patterns() {
     const std::size_t bound = formats::max_regex_nesting;
     for (const auto& [open, close] : {
@@ -305,28 +454,19 @@ void hostile_patterns() {
              {"(?<!", ")"},
              {"(?i:", ")"},
              {"(?:a|", ")"},
-             {"(?:(?:a?)?", ")?"},
          }) {
-        const bool nests_twice = open == "(?:(?:a?)?";
-        const std::size_t levels = nests_twice ? bound - 1 : bound;
-        regex(repeated(open, levels) + "a" + repeated(close, levels), true);
-        regex(repeated(open, bound + 1) + "a" + repeated(close, bound + 1), false);
+        regex(nested(open, close, bound), true);
+        regex(nested(open, close, bound + 1), false);
     }
     regex(repeated("(", 10'000) + "a" + repeated(")", 10'000), false);
     regex(repeated("(?:", 10'000) + "a" + repeated(")*", 10'000), false);
     regex(repeated("(a)", 10'000), true);
-    // The alternatives: each |, quantifier and backreference, up to the bound and one past it.
-    const std::size_t wide = formats::max_regex_alternatives;
-    regex("a" + repeated("|a", wide), true);
-    regex("a" + repeated("|a", wide + 1), false);
-    regex(repeated("a*", wide), true);
-    regex(repeated("a*", wide + 1), false);
-    regex("(a)" + repeated("\\1", wide), true);
-    regex("(a)" + repeated("\\1", wide + 1), false);
-    regex(repeated("(?<n>a)|", 64) + repeated("\\k<n>", wide / 65), true);
-    regex(repeated("(?<n>a)|", 64) + repeated("\\k<n>", (wide / 65) + 1), false);
-    regex("[" + repeated("\\D", wide + 1) + "]", true);
-    regex("[" + repeated("\\D", wide + 2) + "]", false);
+    // Alternatives, quantifiers, backreferences and classes are not counted: wide patterns are
+    // judged, up to max_regex_length.
+    regex("a" + repeated("|a", 5000), true);
+    regex(repeated("a*", 5000), true);
+    regex("(a)" + repeated("\\1", 5000), true);
+    regex("[" + repeated("\\D", 5000) + "]", true);
     // The length: a pattern of max_regex_length bytes is judged, and a longer one refused unread.
     regex(repeated("a", formats::max_regex_length), true);
     regex(repeated("a", formats::max_regex_length + 1), false);
@@ -334,30 +474,23 @@ void hostile_patterns() {
     regex("[" + repeated("a-z", (formats::max_regex_length / 3) - 1) + "]", true);
 }
 
-void the_translator_allocates_through_its_resource() {
-    webcpp::test::counting_resource resource;
-    BOOST_TEST(formats::is_regex("(?<y>\\d{4})-\\p{Letter}+|(?<=\\$\\d*)x", resource));
-    BOOST_TEST_GT(resource.allocations, 0U);
-    BOOST_TEST_EQ(resource.deallocations, resource.allocations);
-    webcpp::test::counting_resource refusals;
-    BOOST_TEST(!formats::is_regex("^(abc]", refusals));
-    BOOST_TEST_EQ(refusals.deallocations, refusals.allocations);
-}
-
 }  // namespace
 
 int main() {
-    ecma_262_patterns();
-    annex_b_and_other_dialects_are_refused();
-    modifiers();
+    alternatives_and_empty_patterns();
+    assertions();
+    quantifiers_and_braces();
+    groups_and_names();
     duplicate_group_names();
-    lookbehinds_of_any_width();
-    utf8_and_nul();
+    modifiers();
+    lookarounds();
+    escapes();
+    backreferences();
+    classes();
     unicode_properties();
+    utf8_and_nul();
     the_tables();
-    the_traits();
-    the_translation();
+    the_verdicts();
     hostile_patterns();
-    the_translator_allocates_through_its_resource();
     return boost::report_errors();
 }
