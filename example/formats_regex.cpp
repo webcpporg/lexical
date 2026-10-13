@@ -4,18 +4,15 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// ECMA-262 patterns, read by formats' translator in a pool of the program's own and compiled by
-// Boost.Regex.
+// ECMA-262 patterns, judged by formats' syntax validator: each is checked, never compiled or run.
 
 #include <webcpp/formats/regex.hpp>
 
 #include <iostream>
-#include <memory_resource>
 #include <string_view>
 
 int main() {
     // tag::program[]
-    std::pmr::unsynchronized_pool_resource pool;
     for (const std::string_view pattern : {
              R"(^\p{Letter}+$)",
              R"((?<year>\d{4})-(?<month>\d{2}))",
@@ -25,8 +22,8 @@ int main() {
              "(?i)abc",
              "(?i:abc)",
          }) {
-        std::cout << pattern << " -> "
-                  << (webcpp::formats::is_regex(pattern, pool) ? "valid" : "invalid") << '\n';
+        std::cout << pattern << " -> " << (webcpp::formats::is_regex(pattern) ? "valid" : "invalid")
+                  << '\n';
     }
     // end::program[]
 }
