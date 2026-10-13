@@ -81,6 +81,15 @@ constexpr std::optional<unsigned> hex_value(char32_t c) noexcept {
     return std::nullopt;
 }
 
+/** `s.substr(at, count)` that cannot throw: the bytes of `s` from `at`, none past its end. */
+constexpr std::string_view slice(std::string_view s, std::size_t at,
+                                 std::size_t count = std::string_view::npos) noexcept {
+    if (at >= s.size()) {
+        return {};
+    }
+    return {s.data() + at, std::min(count, s.size() - at)};
+}
+
 /** `count` hexadecimal digits at byte `at` of `s`, as a number, moving `at` past them. */
 constexpr std::optional<char32_t> hex_digits(std::string_view s, std::size_t& at,
                                              std::size_t count) noexcept {
@@ -98,7 +107,7 @@ constexpr std::optional<char32_t> hex_digits(std::string_view s, std::size_t& at
 }
 
 /**
- The code point of the escape after `\u` at byte `at` of `s`, `{X...}` up to 10FFFF or `XXXX`, an
+ The code point of the escape after `\\u` at byte `at` of `s`, `{X...}` up to 10FFFF or `XXXX`, an
  escaped surrogate pair joined into one, moving `at` past it; nothing for a malformed one.
 */
 constexpr std::optional<char32_t> unicode_escape(std::string_view s, std::size_t& at) noexcept {
@@ -123,7 +132,7 @@ constexpr std::optional<char32_t> unicode_escape(std::string_view s, std::size_t
         return value;
     }
     const std::optional<char32_t> high = hex_digits(s, at, 4);
-    if (!high || *high < 0xD800 || *high > 0xDBFF || s.substr(at, 2) != "\\u") {
+    if (!high || *high < 0xD800 || *high > 0xDBFF || slice(s, at, 2) != "\\u") {
         return high;
     }
     std::size_t after = at + 2;
@@ -136,7 +145,7 @@ constexpr std::optional<char32_t> unicode_escape(std::string_view s, std::size_t
 }
 
 /**
- The next code point of a group's name at byte `at` of `s`, a `\u` escape decoded, moving `at`
+ The next code point of a group's name at byte `at` of `s`, a `\\u` escape decoded, moving `at`
  past it; nothing at the name's `>`, at the end, or on a malformed escape.
 */
 constexpr std::optional<char32_t> name_code_point(std::string_view s, std::size_t& at) noexcept {
@@ -210,12 +219,12 @@ constexpr regex_token next_token(std::string_view s, std::size_t& at) noexcept {
 
 /** Whether the `(` at byte `at` of `s` opens a named group, `(?<` and no `=` or `!` after. */
 constexpr bool opens_named_group(std::string_view s, std::size_t at) noexcept {
-    return s.substr(at, 3) == "(?<" && at + 3 < s.size() && s[at + 3] != '=' && s[at + 3] != '!';
+    return slice(s, at, 3) == "(?<" && at + 3 < s.size() && s[at + 3] != '=' && s[at + 3] != '!';
 }
 
 /** Whether the `(` at byte `at` of `s` opens a group that captures. */
 constexpr bool opens_capture(std::string_view s, std::size_t at) noexcept {
-    return s.substr(at, 2) != "(?" || opens_named_group(s, at);
+    return slice(s, at, 2) != "(?" || opens_named_group(s, at);
 }
 
 /**
@@ -433,12 +442,12 @@ private:
             fail("an unterminated \\p{");
             return false;
         }
-        const std::string_view body = p_.substr(first, i_ - 1 - first);
+        const std::string_view body = slice(p_, first, i_ - 1 - first);
         const std::size_t equals = body.find('=');
         const bool found = body.size() <= longest_property &&
                            (equals == std::string_view::npos
                                 ? lone_property(body)
-                                : property_value(body.substr(0, equals), body.substr(equals + 1)));
+                                : property_value(slice(body, 0, equals), slice(body, equals + 1)));
         if (!found) {
             fail("an unknown property or value in \\p{...}");
         }
@@ -558,7 +567,11 @@ private:
     [[nodiscard]] constexpr bool braces(std::size_t& at, std::size_t& least, std::size_t& most,
                                         bool& bounded) const noexcept {
         std::size_t i = at;
-        if (i >= p_.size() || p_[i] != '{' || !decimal_number(++i, least)) {
+        if (i >= p_.size() || p_[i] != '{') {
+            return false;
+        }
+        ++i;
+        if (!decimal_number(i, least)) {
             return false;
         }
         most = least;
@@ -868,8 +881,10 @@ constexpr regex_check check_regex(std::string_view pattern, std::size_t max_nest
     for (std::size_t i = 0; i < pattern.size();) {
         char32_t cp = 0;
         if (!decode_utf8(pattern, i, cp)) {
-            return {.verdict = regex_verdict::invalid,
-                    .why = "a pattern that is not well-formed UTF-8"};
+            return {
+                .verdict = regex_verdict::invalid,
+                .why = "a pattern that is not well-formed UTF-8",
+            };
         }
     }
     return regex_validator(pattern, max_nesting).run();

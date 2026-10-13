@@ -30,7 +30,7 @@ namespace tables = webcpp::formats::detail::regex_tables;
 
 namespace {
 
-using regex_verdict = detail::regex_verdict;
+using detail::regex_verdict;
 
 void regex(std::string_view pattern, bool valid) {
     if (!BOOST_TEST_EQ(formats::is_regex(pattern), valid)) {
@@ -89,7 +89,7 @@ void assertions() {
     regex("^$", true);
     regex("\\b", true);
     regex("\\B", true);
-    regex("^\\b\\w+\\B$", true);
+    regex(R"(^\b\w+\B$)", true);
     regex("a^b$c", true);
     regex("(^)($)", true);
     regex("^a|b$", true);
@@ -328,8 +328,8 @@ void classes() {
     regex("[\\cA-\\cZ]", true);
     regex("[\\b-z]", true);
     regex("[\\-]", true);
-    regex("[\\d\\D\\s\\S\\w\\W]", true);
-    regex("[\\b\\-\\]\\\\]", true);
+    regex(R"([\d\D\s\S\w\W])", true);
+    regex(R"([\b\-\]\\])", true);
     regex("[[]", true);
     regex("[(){}|]", true);
     regex("[a&&b]", true);

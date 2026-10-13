@@ -422,22 +422,22 @@ void a_regex_allocates_nothing() {
     const std::string longest(webcpp::formats::max_regex_length, 'a');
     const std::string too_long(webcpp::formats::max_regex_length + 1, 'a');
     const std::string hostile(10'000, '(');
-    const regex_sample samples[] = {
-        {"a", true},
-        {R"(^\p{Letter}+$)", true},
-        {R"((?<y>\d{4})-(?<m>\d{2})|\p{Script=Greek}+)", true},
-        {"(?<=a|bc)d", true},
-        {R"([\D\S])", true},
-        {"(?i:k)(?<n>a)|(?<n>b)\\k<n>", true},
-        {"^(abc]", false},
-        {"a{3,1}", false},
-        {"\\k<m>(?<n>a)", false},
-        {"\\p{Greek}", false},
-        {at_bound, true},
-        {beyond_bound, false},
-        {longest, true},
-        {too_long, false},
-        {hostile, false},
+    const std::array samples{
+        regex_sample{.pattern = "a", .valid = true},
+        regex_sample{.pattern = R"(^\p{Letter}+$)", .valid = true},
+        regex_sample{.pattern = R"((?<y>\d{4})-(?<m>\d{2})|\p{Script=Greek}+)", .valid = true},
+        regex_sample{.pattern = "(?<=a|bc)d", .valid = true},
+        regex_sample{.pattern = R"([\D\S])", .valid = true},
+        regex_sample{.pattern = "(?i:k)(?<n>a)|(?<n>b)\\k<n>", .valid = true},
+        regex_sample{.pattern = "^(abc]", .valid = false},
+        regex_sample{.pattern = "a{3,1}", .valid = false},
+        regex_sample{.pattern = "\\k<m>(?<n>a)", .valid = false},
+        regex_sample{.pattern = "\\p{Greek}", .valid = false},
+        regex_sample{.pattern = at_bound, .valid = true},
+        regex_sample{.pattern = beyond_bound, .valid = false},
+        regex_sample{.pattern = longest, .valid = true},
+        regex_sample{.pattern = too_long, .valid = false},
+        regex_sample{.pattern = hostile, .valid = false},
     };
     for (const regex_sample& sample : samples) {
         const std::size_t before = global_allocations();
