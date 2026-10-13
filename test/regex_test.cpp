@@ -432,9 +432,9 @@ void the_verdicts() {
     static_assert(detail::check_regex("(?<n>a)\\k<n>", formats::max_regex_nesting).verdict ==
                       regex_verdict::valid,
                   "check_regex is constexpr");
-    static_assert(detail::check_regex("a{3,1}", formats::max_regex_nesting).verdict ==
-                      regex_verdict::invalid,
-                  "check_regex is constexpr");
+    static_assert(
+        detail::check_regex("a{3,1}", formats::max_regex_nesting).verdict == regex_verdict::invalid,
+        "check_regex is constexpr");
     static_assert(noexcept(formats::is_regex(std::string_view{})), "is_regex does not throw");
     static_assert(noexcept(detail::check_regex(std::string_view{}, 0)),
                   "check_regex does not throw");

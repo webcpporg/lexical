@@ -26,8 +26,8 @@
 
  formats raises no exception of its own: a validator answers `false` and a rule returns its error,
  so the macro changes nothing in it. It is provided so that a program can set it for every webcpp
- library alike. Only the memory an IRI function or `is_regex` allocates may throw, and an
- exception formats raised would go through `boost::throw_exception`.
+ library alike. Only the memory an IRI function allocates may throw, and an exception formats
+ raised would go through `boost::throw_exception`.
 
  @see "Errors", in the guide.
 */
