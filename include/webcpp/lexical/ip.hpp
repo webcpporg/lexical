@@ -6,14 +6,14 @@
 
 /**
  IP addresses, as validators over Boost.URL's own rules, `boost::urls::ipv4_address_rule` and
- `boost::urls::ipv6_address_rule`, which are the formats' rules too.
+ `boost::urls::ipv6_address_rule`, which are lexical's rules too.
 
  @see "Addresses", in the guide.
 */
-#ifndef WEBCPP_FORMATS_IP_HPP
-#define WEBCPP_FORMATS_IP_HPP
+#ifndef WEBCPP_LEXICAL_IP_HPP
+#define WEBCPP_LEXICAL_IP_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
 #include <boost/url/grammar/parse.hpp>
 #include <boost/url/rfc/ipv4_address_rule.hpp>
@@ -21,7 +21,7 @@
 
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 /**
  Whether `s` is an IPv4 address in dotted-quad form, JSON Schema's `ipv4`.
@@ -49,6 +49,6 @@ namespace webcpp::formats {
     return boost::urls::grammar::parse(s, boost::urls::ipv6_address_rule).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_IP_HPP
+#endif  // WEBCPP_LEXICAL_IP_HPP

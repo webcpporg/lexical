@@ -4,30 +4,30 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-testing]
+[#lexical-testing]
 == Testing
 
-formats is tested natively, on wasm32-wasip2 and wasm32-wasip3 under
+lexical is tested natively, on wasm32-wasip2 and wasm32-wasip3 under
 wasmtime, and on emscripten under node, from the superproject's root:
 
 [source,bash]
 ----
-b2 libs/formats/test libs/formats/example
-b2 toolset=clang-wasip2 testing.launcher=wasmtime libs/formats/test libs/formats/example
-b2 toolset=clang-wasip3 testing.launcher=wasmtime libs/formats/test libs/formats/example
-b2 toolset=emscripten libs/formats/test libs/formats/example
+b2 libs/lexical/test libs/lexical/example
+b2 toolset=clang-wasip2 testing.launcher=wasmtime libs/lexical/test libs/lexical/example
+b2 toolset=clang-wasip3 testing.launcher=wasmtime libs/lexical/test libs/lexical/example
+b2 toolset=emscripten libs/lexical/test libs/lexical/example
 ----
 
 Its {n-tests} tests are written with Boost's lightweight_test: each public
 header compiled alone, the configuration macro compiled three times, the
 terminals every format shares, the cases of each format, the rules composed
 with Boost.URL's combinators, what each validator allocates, the run of the
-JSON Schema suite's {n-suite} string tests (<<formats-suite>>), and the
+JSON Schema suite's {n-suite} string tests (<<lexical-suite>>), and the
 comparison of `is_regex` with V8 on {n-regex-patterns} patterns
-(<<formats-regex-v8>>). Its {n-examples} examples run on every target too,
+(<<lexical-regex-v8>>). Its {n-examples} examples run on every target too,
 each compared with the output the page shows.
 
-The suite's files, and formats' known-failure lists and patterns, reach a
+The suite's files, and lexical's known-failure lists and patterns, reach a
 WASI program through webcpp.data, the directory wasmtime is given with
 `--dir`, and an emscripten program through node's file system.
 
@@ -36,13 +36,13 @@ the pinned Node's, for its verdict on every pattern `regex_v8` reads, and
 compares them with the committed ones, which only `update-expected` writes;
 `generated` runs the generators of the Unicode tables and of the patterns
 again, and compares their outputs with the committed files
-(<<formats-regex-tables>>):
+(<<lexical-regex-tables>>):
 
 [source,bash]
 ----
-b2 -a libs/formats/test/oracle//oracle
-b2 -a libs/formats/test//generated
-b2 libs/formats/test/oracle//update-expected
+b2 -a libs/lexical/test/oracle//oracle
+b2 -a libs/lexical/test//generated
+b2 libs/lexical/test/oracle//update-expected
 ----
 
 The test matrix of every lane is published at

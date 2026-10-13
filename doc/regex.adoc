@@ -4,34 +4,34 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-regex]
+[#lexical-regex]
 == Regular expressions
 
 `is_regex` answers whether a string is a regular expression, JSON Schema's
 `regex`: ECMA-262's `Pattern` in `u` mode, with ECMAScript 2025's modifiers,
 `+(?i:...)+`, and its duplicate group names, `+(?<y>...)|(?<y>...)+`. It is
-declared in `<webcpp/formats/regex.hpp>`, the one header of formats that
-brings the Unicode tables of ECMA-262's classes: `<webcpp/formats.hpp>` leaves
+declared in `<webcpp/lexical/regex.hpp>`, the one header of lexical that
+brings the Unicode tables of ECMA-262's classes: `<webcpp/lexical.hpp>` leaves
 it out, and a program that never validates a pattern does not compile them.
 
 [source]
 ----
-include::{examples}/formats_regex.cpp[tag=program,indent=0]
+include::{examples}/lexical_regex.cpp[tag=program,indent=0]
 ----
 
 It prints:
 
 [listing]
 ----
-include::{examples}/formats_regex.expected[]
+include::{examples}/lexical_regex.expected[]
 ----
 
-[#formats-regex-how]
+[#lexical-regex-how]
 === How a pattern is judged
 
 A pattern is valid when ECMA-262 accepts it as a `Pattern` in `u` mode, early
 errors included: when `new RegExp(pattern, "u")` does not throw a
-SyntaxError. formats' validator reads the pattern as that grammar reads it,
+SyntaxError. lexical's validator reads the pattern as that grammar reads it,
 and refuses what the grammar refuses there: Annex B's escapes and classes,
 `\a`, `\-` outside a class, `\8`, an octal escape; Perl's `\A`, `\Z` and `\z`;
 a group of another dialect, `+(?P<n>...)+`, `+(?#...)+`, a leading `(?i)`; a
@@ -45,7 +45,7 @@ nothing more. `is_regex` compiles no pattern and runs none: it says nothing of
 how long a matcher takes on a valid pattern, nor of the limits an engine sets
 on the program it builds from one. The property names `+\p{...}+` accepts are
 Unicode {unicode-version}'s, read from the generated tables
-(<<formats-regex-tables>>): no ICU and no `std::locale`.
+(<<lexical-regex-tables>>): no ICU and no `std::locale`.
 
 ECMA-262 allows a lookbehind of any width, `+(?<=\$\d*)+`, and so does
 `is_regex`: it never measures a lookbehind, since it compiles nothing.
@@ -53,7 +53,7 @@ ECMA-262 allows a lookbehind of any width, `+(?<=\$\d*)+`, and so does
 `is_regex` has no rule: a pattern has no grammar of its own inside a longer
 input, so `is_regex` judges a whole string.
 
-[#formats-regex-bounds]
+[#lexical-regex-bounds]
 === Bounds
 
 Two bounds keep a hostile pattern, which JSON Schema meets in an instance,
@@ -67,19 +67,19 @@ answers `false` without judging the pattern, though ECMA-262 may allow it:
 | `max_regex_nesting` | 32 | groups, lookarounds and modifiers one inside the other: the validator descends into a group by calling itself, so the nesting bounds its stack
 |===
 
-[#formats-regex-allocation]
+[#lexical-regex-allocation]
 === What it allocates
 
 `is_regex` allocates nothing, on any target. It takes no memory resource: its
 reader works on the pattern's own bytes and keeps its state on the stack, to
-the depth `max_regex_nesting` allows. So `<webcpp/formats/regex.hpp>` keeps
-formats' rule that a validator allocates nothing, as the allocation table says
-(<<formats-allocation>>).
+the depth `max_regex_nesting` allows. So `<webcpp/lexical/regex.hpp>` keeps
+lexical's rule that a validator allocates nothing, as the allocation table says
+(<<lexical-allocation>>).
 
-[#formats-regex-v8]
+[#lexical-regex-v8]
 === Compared with V8
 
-A test of formats, `regex_v8`, compares `is_regex` with V8 on
+A test of lexical, `regex_v8`, compares `is_regex` with V8 on
 {n-regex-patterns} patterns, of which {n-regex-valid} are valid by V8's
 verdict. The patterns are drawn at random, from seeds 2 to 9 of Python's
 `random.Random`, from a grammar of atoms, groups of every kind,
@@ -93,29 +93,29 @@ at their edges. V8's verdict is `new RegExp(pattern, "u")` throwing a
 SyntaxError or not, written by the oracle of `test/oracle`, which runs the
 pinned Node, 26.7.0, whose V8 is 14.6 and whose Unicode is 17.0. On each of
 these patterns the verdict of `is_regex` is V8's, on every target
-(<<formats-testing>>).
+(<<lexical-testing>>).
 
 To check the committed verdicts against the pinned Node, and `is_regex`
 against them:
 
 [source,bash]
 ----
-b2 -a libs/formats/test/oracle//oracle
-b2 -a libs/formats/test//regex_v8
+b2 -a libs/lexical/test/oracle//oracle
+b2 -a libs/lexical/test//regex_v8
 ----
 
 After a change to the patterns, `update-expected` writes the verdicts again:
 
 [source,bash]
 ----
-b2 libs/formats/test/oracle//update-expected
+b2 libs/lexical/test/oracle//update-expected
 ----
 
-[#formats-regex-tables]
+[#lexical-regex-tables]
 === The Unicode tables
 
-`tools/generate_tables.py`, in formats' repository, writes
-`<webcpp/formats/detail/regex_tables.hpp>` from Unicode's data files of
+`tools/generate_tables.py`, in lexical's repository, writes
+`<webcpp/lexical/detail/regex_tables.hpp>` from Unicode's data files of
 version {unicode-version}, pinned in `tools/unicode.json`, each by its URL
 under `\https://www.unicode.org/Public/{unicode-version}/` and its SHA-256: a
 file its cache lacks is downloaded, every file is hashed, and a digest that
@@ -135,10 +135,10 @@ directory, and compares each output with the committed file, byte for byte;
 `update-generated` writes them in place, the one writer of the generated
 files. The ordinary lanes never run them, since a generator may need the
 network. The data are Unicode's, under the Unicode License v3, whose notice
-is in <<formats-unicode-data,the appendix "Unicode data">>.
+is in <<lexical-unicode-data,the appendix "Unicode data">>.
 
 [source,bash]
 ----
-b2 -a libs/formats/test//generated
-b2 libs/formats/test//update-generated
+b2 -a libs/lexical/test//generated
+b2 libs/lexical/test//update-generated
 ----

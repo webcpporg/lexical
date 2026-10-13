@@ -9,7 +9,7 @@
 // UTF-8 well-formed or refused, NUL as a character, the drafts' section 5.1 examples, and the
 // index manipulation under each policy.
 
-#include <webcpp/formats/json_pointer.hpp>
+#include <webcpp/lexical/json_pointer.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/error.hpp>
@@ -19,36 +19,36 @@
 #include <iostream>
 #include <string_view>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 void pointer(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_json_pointer(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_json_pointer(text), valid)) {
         std::cerr << "json-pointer: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_json_pointer(text),
+    BOOST_TEST_EQ(lexical::is_json_pointer(text),
                   urlg::parse(text, fg::json_pointer_rule).has_value());
 }
 
-void relative(std::string_view text, bool valid, formats::index_manipulation manipulation) {
-    if (!BOOST_TEST_EQ(formats::is_relative_json_pointer(text, manipulation), valid)) {
+void relative(std::string_view text, bool valid, lexical::index_manipulation manipulation) {
+    if (!BOOST_TEST_EQ(lexical::is_relative_json_pointer(text, manipulation), valid)) {
         std::cerr << "relative-json-pointer, index manipulation "
-                  << (manipulation == formats::index_manipulation::allowed ? "allowed" : "refused")
+                  << (manipulation == lexical::index_manipulation::allowed ? "allowed" : "refused")
                   << ": \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_relative_json_pointer(text, manipulation),
+    BOOST_TEST_EQ(lexical::is_relative_json_pointer(text, manipulation),
                   urlg::parse(text, fg::relative_json_pointer_rule_t{manipulation}).has_value());
 }
 
 /** Checks `text` under both policies, the default included. */
 void relative(std::string_view text, bool valid) {
-    relative(text, valid, formats::index_manipulation::allowed);
-    relative(text, valid, formats::index_manipulation::refused);
-    BOOST_TEST_EQ(formats::is_relative_json_pointer(text),
-                  formats::is_relative_json_pointer(text, formats::index_manipulation::allowed));
+    relative(text, valid, lexical::index_manipulation::allowed);
+    relative(text, valid, lexical::index_manipulation::refused);
+    BOOST_TEST_EQ(lexical::is_relative_json_pointer(text),
+                  lexical::is_relative_json_pointer(text, lexical::index_manipulation::allowed));
 }
 
 void rfc_6901_section_5() {
@@ -149,10 +149,10 @@ void index_manipulation_under_each_policy() {
         "0+9",      // nine, the last digit
     };
     for (const std::string_view text : manipulated) {
-        relative(text, true, formats::index_manipulation::allowed);
-        relative(text, false, formats::index_manipulation::refused);
+        relative(text, true, lexical::index_manipulation::allowed);
+        relative(text, false, lexical::index_manipulation::refused);
         // Allowed is the default, of the function and of the rule object.
-        BOOST_TEST(formats::is_relative_json_pointer(text));
+        BOOST_TEST(lexical::is_relative_json_pointer(text));
         BOOST_TEST(urlg::parse(text, fg::relative_json_pointer_rule).has_value());
     }
     constexpr std::array<std::string_view, 8> broken{
@@ -179,7 +179,7 @@ void where_the_manipulation_stops_the_rule() {
     BOOST_TEST(whole.has_value() && *whole == "0+1/a");
     char const* at = text.data();
     const auto refused =
-        fg::relative_json_pointer_rule_t{formats::index_manipulation::refused}.parse(
+        fg::relative_json_pointer_rule_t{lexical::index_manipulation::refused}.parse(
             at, text.data() + text.size());
     BOOST_TEST(refused.has_value() && *refused == "0");
     BOOST_TEST(at == text.data() + 1);
@@ -225,10 +225,10 @@ void what_the_rules_leave_where_they_fail_or_match_nothing() {
 
 void the_scanner_refuses_what_no_digit_starts() {
     // The rule checks the first digit itself, to answer mismatch; the scanner guards it again.
-    constexpr auto allowed = formats::index_manipulation::allowed;
-    BOOST_TEST(!formats::detail::relative_json_pointer_length("", allowed).has_value());
-    BOOST_TEST(!formats::detail::relative_json_pointer_length("x", allowed).has_value());
-    BOOST_TEST(!formats::detail::relative_json_pointer_length("/0", allowed).has_value());
+    constexpr auto allowed = lexical::index_manipulation::allowed;
+    BOOST_TEST(!lexical::detail::relative_json_pointer_length("", allowed).has_value());
+    BOOST_TEST(!lexical::detail::relative_json_pointer_length("x", allowed).has_value());
+    BOOST_TEST(!lexical::detail::relative_json_pointer_length("/0", allowed).has_value());
 }
 
 void a_view_that_ends_inside_an_escape() {

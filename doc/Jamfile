@@ -6,5 +6,5 @@
 
 import webcpp ;
 
-webcpp.doc formats : formats.adoc ;
-webcpp.reference formats ;
+webcpp.doc lexical : lexical.adoc ;
+webcpp.reference lexical ;

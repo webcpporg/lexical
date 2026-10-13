@@ -8,7 +8,7 @@
 // never answer a verdict without their mapped copy. Built with exceptions whatever the build asks:
 // it catches on purpose.
 
-#include <webcpp/formats/uri.hpp>
+#include <webcpp/lexical/uri.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -16,7 +16,7 @@
 #include <new>
 #include <string>
 
-namespace formats = webcpp::formats;
+namespace lexical = webcpp::lexical;
 
 int main() {
     std::string beyond = "http://a/";
@@ -25,14 +25,14 @@ int main() {
     }
     bool thrown = false;
     try {
-        static_cast<void>(formats::is_iri(beyond, *std::pmr::null_memory_resource()));
+        static_cast<void>(lexical::is_iri(beyond, *std::pmr::null_memory_resource()));
     } catch (const std::bad_alloc&) {
         thrown = true;
     }
     BOOST_TEST(thrown);
     bool reference_thrown = false;
     try {
-        static_cast<void>(formats::is_iri_reference(beyond, *std::pmr::null_memory_resource()));
+        static_cast<void>(lexical::is_iri_reference(beyond, *std::pmr::null_memory_resource()));
     } catch (const std::bad_alloc&) {
         reference_thrown = true;
     }

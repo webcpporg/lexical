@@ -9,13 +9,13 @@
 
  @see "Identifiers", in the guide.
 */
-#ifndef WEBCPP_FORMATS_UUID_HPP
-#define WEBCPP_FORMATS_UUID_HPP
+#ifndef WEBCPP_LEXICAL_UUID_HPP
+#define WEBCPP_LEXICAL_UUID_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/rules.hpp>
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/detail/rules.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/error.hpp>
@@ -26,7 +26,7 @@
 #include <cstddef>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 namespace detail {
 
@@ -98,6 +98,6 @@ inline result<text> uuid_rule_t::parse(char const*& it, char const* end) const n
     return detail::urlg::parse(s, grammar::uuid_rule).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_UUID_HPP
+#endif  // WEBCPP_LEXICAL_UUID_HPP

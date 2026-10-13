@@ -10,13 +10,13 @@
 
  @see "Identifiers", in the guide.
 */
-#ifndef WEBCPP_FORMATS_JSON_POINTER_HPP
-#define WEBCPP_FORMATS_JSON_POINTER_HPP
+#ifndef WEBCPP_LEXICAL_JSON_POINTER_HPP
+#define WEBCPP_LEXICAL_JSON_POINTER_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/utf8.hpp>
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/detail/utf8.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <boost/url/grammar/digit_chars.hpp>
 #include <boost/url/grammar/error.hpp>
@@ -26,7 +26,7 @@
 #include <optional>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 /**
  Whether a relative JSON Pointer may move its array index with a sign and an integer.
@@ -238,6 +238,6 @@ inline result<text> relative_json_pointer_rule_t::parse(char const*& it,
     return detail::urlg::parse(s, grammar::relative_json_pointer_rule_t{manipulation}).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_JSON_POINTER_HPP
+#endif  // WEBCPP_LEXICAL_JSON_POINTER_HPP

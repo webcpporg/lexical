@@ -9,7 +9,7 @@
 // refused, and the rule inside a larger grammar; and RFC 6531 3.3's internationalized Mailbox, its
 // UTF-8 local part, its domain judged by idna, and its length as written.
 
-#include <webcpp/formats/email.hpp>
+#include <webcpp/lexical/email.hpp>
 
 #include <webcpp/idna/errors.hpp>
 #include <webcpp/idna/options.hpp>
@@ -24,17 +24,17 @@
 #include <string>
 #include <string_view>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 void email(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_email(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_email(text), valid)) {
         std::cerr << "email: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_email(text), urlg::parse(text, fg::email_rule).has_value());
+    BOOST_TEST_EQ(lexical::is_email(text), urlg::parse(text, fg::email_rule).has_value());
 }
 
 void dot_strings() {
@@ -191,7 +191,7 @@ void the_rule_stops_and_reports() {
 
 /** The local part alone: a quoted string that never closes is invalid, not a local part. */
 void the_local_part_rule() {
-    namespace detail = webcpp::formats::detail;
+    namespace detail = webcpp::lexical::detail;
     constexpr std::array<std::string_view, 3> unclosed{
         "\"",       //
         "\"abc",    //
@@ -234,10 +234,10 @@ void a_refusal_leaves_the_iterator() {
 }
 
 void idn(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_idn_email(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_idn_email(text), valid)) {
         std::cerr << "idn-email: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_idn_email(text), urlg::parse(text, fg::idn_email_rule).has_value());
+    BOOST_TEST_EQ(lexical::is_idn_email(text), urlg::parse(text, fg::idn_email_rule).has_value());
 }
 
 void idn_mailboxes() {
@@ -319,7 +319,7 @@ void idn_mailboxes_at_254_and_255_octets() {
     BOOST_TEST_EQ(mailbox.size(), 254U);
     // Its ASCII form would be 314 octets.
     idn(mailbox, true);
-    BOOST_TEST(formats::is_idn_hostname(domain + "a"));
+    BOOST_TEST(lexical::is_idn_hostname(domain + "a"));
     idn(mailbox + "a", false);
     // FULLWIDTH LATIN SMALL LETTER A, three octets as written and one in the ASCII form: 254 and
     // 255 octets as written, 130 and 131 in the ASCII form.

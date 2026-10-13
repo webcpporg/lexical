@@ -6,12 +6,12 @@
 
 // Small terminal rules that Boost.URL's grammar library does not have.
 
-#ifndef WEBCPP_FORMATS_DETAIL_RULES_HPP
-#define WEBCPP_FORMATS_DETAIL_RULES_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_RULES_HPP
+#define WEBCPP_LEXICAL_DETAIL_RULES_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <boost/url/grammar/ci_string.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
@@ -22,7 +22,7 @@
 #include <limits>
 #include <string_view>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /** A rule that matches exactly `N` characters of `chars`, and yields them. */
 template <std::size_t N, class CharSet>
@@ -141,6 +141,6 @@ constexpr repeat_rule_t<First, Next> repeat_rule(
     return repeat_rule_t<First, Next>{first, next, least, most};
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_RULES_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_RULES_HPP

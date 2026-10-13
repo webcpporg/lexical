@@ -9,14 +9,14 @@
 // needs to know of the whole pattern, the number of its groups, the groups a name names and where
 // a group sits among the disjunctions, it reads again from the text when it needs it.
 
-#ifndef WEBCPP_FORMATS_DETAIL_REGEX_VALIDATOR_HPP
-#define WEBCPP_FORMATS_DETAIL_REGEX_VALIDATOR_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_REGEX_VALIDATOR_HPP
+#define WEBCPP_LEXICAL_DETAIL_REGEX_VALIDATOR_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/regex_tables.hpp>
-#include <webcpp/formats/detail/regex_unicode.hpp>
-#include <webcpp/formats/detail/utf8.hpp>
+#include <webcpp/lexical/detail/regex_tables.hpp>
+#include <webcpp/lexical/detail/regex_unicode.hpp>
+#include <webcpp/lexical/detail/utf8.hpp>
 
 #include <algorithm>
 #include <array>
@@ -25,7 +25,7 @@
 #include <optional>
 #include <string_view>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /** What the validator answers of a pattern. */
 enum class regex_verdict : std::uint8_t {
@@ -890,6 +890,6 @@ constexpr regex_check check_regex(std::string_view pattern, std::size_t max_nest
     return regex_validator(pattern, max_nesting).run();
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_REGEX_VALIDATOR_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_REGEX_VALIDATOR_HPP

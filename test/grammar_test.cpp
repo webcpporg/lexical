@@ -4,12 +4,12 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// formats' rules composed with Boost.URL's combinators: every public rule inside tuple_rule,
+// lexical's rules composed with Boost.URL's combinators: every public rule inside tuple_rule,
 // variant_rule, optional_rule and range_rule; where each stops; a rule that fails as a whole
 // rather than match a prefix; the host-and-port example of the page; and an IDN rule's error,
 // which is idna's.
 
-#include <webcpp/formats.hpp>
+#include <webcpp/lexical.hpp>
 
 #include <webcpp/idna/errors.hpp>
 
@@ -28,7 +28,7 @@
 #include <string_view>
 #include <tuple>
 
-namespace fg = webcpp::formats::grammar;
+namespace fg = webcpp::lexical::grammar;
 namespace idna = webcpp::idna;
 namespace urlg = boost::urls::grammar;
 
@@ -136,7 +136,7 @@ void rules_inside_the_combinators() {
     BOOST_TEST(ascii_hosts.has_value() && ascii_hosts->size() == 2);
     const auto refused_leap = urlg::parse(
         "23:59:60Z",
-        urlg::variant_rule(fg::time_rule_t{webcpp::formats::leap_seconds::refused}, fg::date_rule));
+        urlg::variant_rule(fg::time_rule_t{webcpp::lexical::leap_seconds::refused}, fg::date_rule));
     BOOST_TEST(!refused_leap.has_value());
     const auto host_or_reference = urlg::parse(
         "../a b", urlg::tuple_rule(urlg::optional_rule(fg::hostname_rule), fg::iri_reference_rule,

@@ -4,11 +4,11 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# A program that includes <webcpp/formats/regex.hpp> holds the Unicode tables of
+# A program that includes <webcpp/lexical/regex.hpp> holds the Unicode tables of
 # its properties beside Boost.URL and idna, as idna's tests of its tables do,
 # which MSVC compiles only with /bigobj: the tests take it on MSVC, not
 # measured here, where no Windows machine is.
-project : requirements <library>/webcpp/formats//formats
+project : requirements <library>/webcpp/lexical//lexical
   <toolset>msvc:<cxxflags>/bigobj ;
 
 import regex ;
@@ -16,19 +16,19 @@ import webcpp ;
 
 webcpp.targets native wasip2 wasip3 emscripten ;
 
-webcpp.headers-alone formats : ../include ;
+webcpp.headers-alone lexical : ../include ;
 
-# config.hpp defines WEBCPP_FORMATS_NO_EXCEPTIONS exactly when webcpp has no
+# config.hpp defines WEBCPP_LEXICAL_NO_EXCEPTIONS exactly when webcpp has no
 # exceptions, and keeps it when a developer defines it in a build that has
 # them.
 webcpp.compile config : config_test.cpp ;
 webcpp.compile config_developer_defined : config_test.cpp
-  : <define>WEBCPP_FORMATS_NO_EXCEPTIONS
-    <define>WEBCPP_TEST_FORMATS_DEVELOPER_DEFINED ;
+  : <define>WEBCPP_LEXICAL_NO_EXCEPTIONS
+    <define>WEBCPP_TEST_LEXICAL_DEVELOPER_DEFINED ;
 # WEBCPP_NO_EXCEPTIONS, which a developer defines for every webcpp library at
-# once, defines WEBCPP_FORMATS_NO_EXCEPTIONS in a build that has exceptions.
+# once, defines WEBCPP_LEXICAL_NO_EXCEPTIONS in a build that has exceptions.
 webcpp.compile config_all_off : config_test.cpp
-  : <define>WEBCPP_NO_EXCEPTIONS <define>WEBCPP_TEST_FORMATS_ALL_OFF ;
+  : <define>WEBCPP_NO_EXCEPTIONS <define>WEBCPP_TEST_LEXICAL_ALL_OFF ;
 
 # The terminals every format shares: UTF-8, the character sets, the rules.
 webcpp.run detail : detail_test.cpp ;
@@ -40,7 +40,7 @@ webcpp.run json_pointer : json_pointer_test.cpp ;
 # IP addresses, URIs and URI references, through Boost.URL.
 webcpp.run ip : ip_test.cpp ;
 webcpp.run uri : uri_test.cpp ;
-# Regular expressions: formats' validator of ECMA-262 and its Unicode tables.
+# Regular expressions: lexical's validator of ECMA-262 and its Unicode tables.
 webcpp.run regex : regex_test.cpp ;
 # is_regex compared with V8 on every pattern of regex/cases, which
 # tools/generate_patterns.py writes, V8's verdicts being regex/expected,
@@ -51,7 +51,7 @@ path-constant REGEX_CASES : regex ;
 local regex-cases = [ regex.replace $(REGEX_CASES) "\\\\" "/" ] ;
 webcpp.run regex_v8 : regex_v8_test.cpp
   : <library>/webcpp//boost_json
-    <define>"\"WEBCPP_TEST_FORMATS_REGEX=\\\"$(regex-cases)\\\"\""
+    <define>"\"WEBCPP_TEST_LEXICAL_REGEX=\\\"$(regex-cases)\\\"\""
     <dependency>regex/cases/patterns.json
     <dependency>regex/expected/verdicts.json
     [ webcpp.data $(REGEX_CASES) ] ;
@@ -64,7 +64,7 @@ webcpp.run iri : iri_test.cpp ;
 # purpose, so the program is built with exceptions whatever the build asks.
 webcpp.run iri_resource : iri_resource_test.cpp : <exception-handling>on ;
 webcpp.run uri_template : uri_template_test.cpp ;
-# formats' rules composed with Boost.URL's combinators.
+# lexical's rules composed with Boost.URL's combinators.
 webcpp.run grammar : grammar_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
 # given; is_regex allocates nothing at all.
@@ -72,7 +72,7 @@ webcpp.run allocation : allocation_test.cpp ;
 
 # The JSON Schema Test Suite comes from /webcpp/third_party, which gives its
 # root as WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE and its directory to a WASI
-# program; the known-failure lists are formats' own, named with forward
+# program; the known-failure lists are lexical's own, named with forward
 # slashes, the define quoted whole, for a checkout whose path holds a
 # space, and given to a WASI program by webcpp.data. On every target:
 # natively, on emscripten through -sNODERAWFS=1, under wasmtime through
@@ -83,7 +83,7 @@ local lists = [ glob known_failures/*.json ] ;
 webcpp.run suite : suite_test.cpp
   : <library>/webcpp//boost_json
     <library>/webcpp/third_party//json-schema-test-suite
-    <define>"\"WEBCPP_TEST_FORMATS_KNOWN_FAILURES=\\\"$(known)\\\"\""
+    <define>"\"WEBCPP_TEST_LEXICAL_KNOWN_FAILURES=\\\"$(known)\\\"\""
     <dependency>$(lists)
     [ webcpp.data $(KNOWN_FAILURES) ] ;
 
@@ -92,7 +92,7 @@ webcpp.run suite : suite_test.cpp
 # with the committed file: the Unicode tables of the regular expressions and
 # the patterns regex_v8 compares with V8. The ordinary lanes never run them.
 webcpp.generated tables : ../tools/generate_tables.py
-  : : ../include/webcpp/formats/detail/regex_tables.hpp ;
+  : : ../include/webcpp/lexical/detail/regex_tables.hpp ;
 webcpp.generated patterns : ../tools/generate_patterns.py
   : : regex/cases/patterns.json ;
 webcpp.lane generated : generated-tables generated-patterns ;

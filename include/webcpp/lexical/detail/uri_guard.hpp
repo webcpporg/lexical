@@ -19,17 +19,17 @@
 // (boost/url/rfc/detail/impl/ipv6_addrz_rule.hpp); it leaves with the first Boost release that
 // refuses one (test/uri_test.cpp, boost_url_still_takes_a_zone_identifier).
 
-#ifndef WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
-#define WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_URI_GUARD_HPP
+#define WEBCPP_LEXICAL_DETAIL_URI_GUARD_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
 #include <boost/core/detail/string_view.hpp>
 #include <boost/url/host_type.hpp>
 #include <boost/url/rfc/pchars.hpp>
 #include <boost/url/url_view.hpp>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /**
  True when Boost.URL accepted a relative reference with an authority and a path that is not empty
@@ -89,6 +89,6 @@ inline bool refuses_zone_identifier(boost::urls::url_view u) noexcept {
     return u.host_type() == boost::urls::host_type::ipv6 && u.encoded_host().contains('%');
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_URI_GUARD_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_URI_GUARD_HPP

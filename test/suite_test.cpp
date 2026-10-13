@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// Runs the JSON-Schema-Test-Suite's format tests against formats' validators, called directly:
+// Runs the JSON-Schema-Test-Suite's format tests against lexical's validators, called directly:
 // every file of tests/<dialect>/optional/format/ for draft4 to draft2020-12, and of
 // tests/v1/format/. A string test passes when its validator's verdict is the test's "valid". A
 // non-string test checks json_schema's rule that a format applies to strings only, so it must
@@ -17,12 +17,12 @@
 // known-failure lists reaching a WASI program through webcpp.data.
 // WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE names the suite's root, from
 // /webcpp/third_party//json-schema-test-suite, and
-// WEBCPP_TEST_FORMATS_KNOWN_FAILURES the lists' directory, from test/Jamfile. A known failure names
+// WEBCPP_TEST_LEXICAL_KNOWN_FAILURES the lists' directory, from test/Jamfile. A known failure names
 // its file as json_schema's lists do, by its path under the dialect's directory
 // (optional/format/uuid.json).
 
-#include <webcpp/formats.hpp>
-#include <webcpp/formats/regex.hpp>
+#include <webcpp/lexical.hpp>
+#include <webcpp/lexical/regex.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/json.hpp>
@@ -44,7 +44,7 @@
 #include <utility>
 #include <vector>
 
-namespace formats = webcpp::formats;
+namespace lexical = webcpp::lexical;
 namespace fs = std::filesystem;
 namespace json = boost::json;
 
@@ -64,28 +64,28 @@ struct mapping {
 
 /** The validators, one per format the suite names, sorted by format. */
 constexpr std::array validators{
-    mapping{"date", [](std::string_view s) { return formats::is_date(s); }},
-    mapping{"date-time", [](std::string_view s) { return formats::is_date_time(s); }},
-    mapping{"duration", [](std::string_view s) { return formats::is_duration(s); }},
-    mapping{"email", [](std::string_view s) { return formats::is_email(s); }},
-    mapping{"hostname", [](std::string_view s) { return formats::is_hostname(s); }},
-    mapping{"idn-email", [](std::string_view s) { return formats::is_idn_email(s); }},
-    mapping{"idn-hostname", [](std::string_view s) { return formats::is_idn_hostname(s); }},
-    mapping{"ipv4", [](std::string_view s) { return formats::is_ipv4(s); }},
-    mapping{"ipv6", [](std::string_view s) { return formats::is_ipv6(s); }},
-    mapping{"iri", [](std::string_view s) { return formats::is_iri(s); }},
-    mapping{"iri-reference", [](std::string_view s) { return formats::is_iri_reference(s); }},
-    mapping{"json-pointer", [](std::string_view s) { return formats::is_json_pointer(s); }},
-    mapping{"regex", [](std::string_view s) { return formats::is_regex(s); }},
+    mapping{"date", [](std::string_view s) { return lexical::is_date(s); }},
+    mapping{"date-time", [](std::string_view s) { return lexical::is_date_time(s); }},
+    mapping{"duration", [](std::string_view s) { return lexical::is_duration(s); }},
+    mapping{"email", [](std::string_view s) { return lexical::is_email(s); }},
+    mapping{"hostname", [](std::string_view s) { return lexical::is_hostname(s); }},
+    mapping{"idn-email", [](std::string_view s) { return lexical::is_idn_email(s); }},
+    mapping{"idn-hostname", [](std::string_view s) { return lexical::is_idn_hostname(s); }},
+    mapping{"ipv4", [](std::string_view s) { return lexical::is_ipv4(s); }},
+    mapping{"ipv6", [](std::string_view s) { return lexical::is_ipv6(s); }},
+    mapping{"iri", [](std::string_view s) { return lexical::is_iri(s); }},
+    mapping{"iri-reference", [](std::string_view s) { return lexical::is_iri_reference(s); }},
+    mapping{"json-pointer", [](std::string_view s) { return lexical::is_json_pointer(s); }},
+    mapping{"regex", [](std::string_view s) { return lexical::is_regex(s); }},
     mapping{
         "relative-json-pointer",
-        [](std::string_view s) { return formats::is_relative_json_pointer(s); },
+        [](std::string_view s) { return lexical::is_relative_json_pointer(s); },
     },
-    mapping{"time", [](std::string_view s) { return formats::is_time(s); }},
-    mapping{"uri", [](std::string_view s) { return formats::is_uri(s); }},
-    mapping{"uri-reference", [](std::string_view s) { return formats::is_uri_reference(s); }},
-    mapping{"uri-template", [](std::string_view s) { return formats::is_uri_template(s); }},
-    mapping{"uuid", [](std::string_view s) { return formats::is_uuid(s); }},
+    mapping{"time", [](std::string_view s) { return lexical::is_time(s); }},
+    mapping{"uri", [](std::string_view s) { return lexical::is_uri(s); }},
+    mapping{"uri-reference", [](std::string_view s) { return lexical::is_uri_reference(s); }},
+    mapping{"uri-template", [](std::string_view s) { return lexical::is_uri_template(s); }},
+    mapping{"uuid", [](std::string_view s) { return lexical::is_uuid(s); }},
 };
 
 /** A format whose validator depends on the dialect, by the policy that dialect's text cites. */
@@ -106,7 +106,7 @@ constexpr auto dialect_validators = std::to_array<dialect_mapping>({
         .dialect = "draft2019-09",
         .valid =
             [](std::string_view s) {
-                return formats::is_relative_json_pointer(s, formats::index_manipulation::refused);
+                return lexical::is_relative_json_pointer(s, lexical::index_manipulation::refused);
             },
     },
     {
@@ -114,14 +114,14 @@ constexpr auto dialect_validators = std::to_array<dialect_mapping>({
         .dialect = "draft7",
         .valid =
             [](std::string_view s) {
-                return formats::is_relative_json_pointer(s, formats::index_manipulation::refused);
+                return lexical::is_relative_json_pointer(s, lexical::index_manipulation::refused);
             },
     },
     {
         .format = "time",
         .dialect = "v1",
         .valid =
-            [](std::string_view s) { return formats::is_time(s, formats::leap_seconds::refused); },
+            [](std::string_view s) { return lexical::is_time(s, lexical::leap_seconds::refused); },
     },
 });
 
@@ -256,7 +256,7 @@ validator validator_for(std::string_view format, std::string_view name) {
 /** The known failures the list of the dialect `name` holds; a malformed list fails the run. */
 std::set<test_id> read_known_failures(std::string_view name) {
     const fs::path path =
-        fs::path(WEBCPP_TEST_FORMATS_KNOWN_FAILURES) / (std::string(name) + ".json");
+        fs::path(WEBCPP_TEST_LEXICAL_KNOWN_FAILURES) / (std::string(name) + ".json");
     std::set<test_id> listed;
     const std::optional<json::value> list = read_json(path);
     if (!BOOST_TEST(list.has_value() && list->is_array())) {

@@ -1,6 +1,6 @@
 {
-    "key": "formats",
-    "name": "formats",
+    "key": "lexical",
+    "name": "lexical",
     "authors": ["R"],
     "description": "Validators and Boost.URL grammar rules for the string formats of JSON Schema, for C++20.",
     "category": ["Parsing", "String"],

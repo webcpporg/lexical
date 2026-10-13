@@ -4,11 +4,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// A memory resource that counts what goes through it, for the tests that check that formats
+// A memory resource that counts what goes through it, for the tests that check that lexical
 // allocates only through the resource it is given.
 
-#ifndef WEBCPP_TEST_FORMATS_COUNTING_RESOURCE_HPP
-#define WEBCPP_TEST_FORMATS_COUNTING_RESOURCE_HPP
+#ifndef WEBCPP_TEST_LEXICAL_COUNTING_RESOURCE_HPP
+#define WEBCPP_TEST_LEXICAL_COUNTING_RESOURCE_HPP
 
 #include <cstddef>
 #include <memory_resource>
@@ -45,4 +45,4 @@ private:
 
 }  // namespace webcpp::test
 
-#endif  // WEBCPP_TEST_FORMATS_COUNTING_RESOURCE_HPP
+#endif  // WEBCPP_TEST_LEXICAL_COUNTING_RESOURCE_HPP

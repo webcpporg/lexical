@@ -10,7 +10,7 @@
 // pins of Boost.URL's own reading of what the guard refuses, each failing the day a Boost release
 // fixes it, when its part of the guard can leave.
 
-#include <webcpp/formats/uri.hpp>
+#include <webcpp/lexical/uri.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -24,26 +24,26 @@
 #include <string_view>
 #include <tuple>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
 void uri(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_uri(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_uri(text), valid)) {
         std::cerr << "uri: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_uri(text), urlg::parse(text, fg::uri_rule).has_value());
+    BOOST_TEST_EQ(lexical::is_uri(text), urlg::parse(text, fg::uri_rule).has_value());
 }
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
 void reference(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_uri_reference(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_uri_reference(text), valid)) {
         std::cerr << "uri-reference: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_uri_reference(text),
+    BOOST_TEST_EQ(lexical::is_uri_reference(text),
                   urlg::parse(text, fg::uri_reference_rule).has_value());
 }
 
@@ -248,7 +248,7 @@ void boost_url_still_takes_a_zone_identifier() {
 void ipvfuture_keeps_boost_urls_verdict() {
     // RFC 3986 3.2.2's IPvFuture starts with "v", which RFC 5234 2.3 makes case-insensitive, as
     // every quoted string of ABNF; Boost.URL 1.92 refuses "V" (the page's "Known deviations"), and
-    // formats does not loosen Boost.URL. When this fails, Boost.URL takes "V" itself: the two false
+    // lexical does not loosen Boost.URL. When this fails, Boost.URL takes "V" itself: the two false
     // verdicts become true, RFC 3986's, as does iri_test's on "http://[V1.x]/", and the deviation
     // leaves the page and AGENTS.md.
     uri("http://[V1.x]/", false);

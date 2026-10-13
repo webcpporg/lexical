@@ -1,10 +1,10 @@
-# formats
+# lexical
 
-formats is a header-only C++20 library of validators and Boost.URL grammar
+lexical is a header-only C++20 library of validators and Boost.URL grammar
 rules for the string formats of JSON Schema, one of the libraries of
 [webcpp](https://github.com/webcpporg/webcpp). Each format is a function that
 takes a `std::string_view` and answers `bool`, and, but `regex`, a rule of
-`webcpp::formats::grammar` that composes with Boost.URL's combinators. Each is
+`webcpp::lexical::grammar` that composes with Boost.URL's combinators. Each is
 checked as its RFC or ECMA-262 defines it, against the official
 JSON-Schema-Test-Suite, and `regex` against V8. Nothing allocates but an IRI
 too long for its inline buffer, through a `std::pmr::memory_resource`.
@@ -23,16 +23,16 @@ too long for its inline buffer, through a `std::pmr::memory_resource`.
 
 ## A minimal example
 
-This is [example/formats_quick_start.cpp](example/formats_quick_start.cpp):
+This is [example/lexical_quick_start.cpp](example/lexical_quick_start.cpp):
 
-<!-- include::example/formats_quick_start.cpp[tag=program] -->
+<!-- include::example/lexical_quick_start.cpp[tag=program] -->
 ```cpp
-#include <webcpp/formats.hpp>
+#include <webcpp/lexical.hpp>
 
 #include <iostream>
 #include <string_view>
 
-namespace formats = webcpp::formats;
+namespace lexical = webcpp::lexical;
 
 namespace {
 
@@ -43,19 +43,19 @@ void show(std::string_view format, std::string_view text, bool valid) {
 }  // namespace
 
 int main() {
-    show("date-time", "1985-04-12T23:20:50.52Z", formats::is_date_time("1985-04-12T23:20:50.52Z"));
-    show("date", "2021-02-29", formats::is_date("2021-02-29"));
-    show("email", "joe.bloggs@[IPv6:::1]", formats::is_email("joe.bloggs@[IPv6:::1]"));
-    show("hostname", "xn--nxasmq6b.example", formats::is_hostname("xn--nxasmq6b.example"));
-    show("uri", "//example.com/p", formats::is_uri("//example.com/p"));
-    show("uri-reference", "//example.com/p", formats::is_uri_reference("//example.com/p"));
-    show("json-pointer", "/a~1b", formats::is_json_pointer("/a~1b"));
+    show("date-time", "1985-04-12T23:20:50.52Z", lexical::is_date_time("1985-04-12T23:20:50.52Z"));
+    show("date", "2021-02-29", lexical::is_date("2021-02-29"));
+    show("email", "joe.bloggs@[IPv6:::1]", lexical::is_email("joe.bloggs@[IPv6:::1]"));
+    show("hostname", "xn--nxasmq6b.example", lexical::is_hostname("xn--nxasmq6b.example"));
+    show("uri", "//example.com/p", lexical::is_uri("//example.com/p"));
+    show("uri-reference", "//example.com/p", lexical::is_uri_reference("//example.com/p"));
+    show("json-pointer", "/a~1b", lexical::is_json_pointer("/a~1b"));
 }
 ```
 
 It prints:
 
-<!-- include::example/formats_quick_start.expected[] -->
+<!-- include::example/lexical_quick_start.expected[] -->
 ```
 date-time 1985-04-12T23:20:50.52Z: valid
 date 2021-02-29: invalid
@@ -66,42 +66,42 @@ uri-reference //example.com/p: valid
 json-pointer /a~1b: valid
 ```
 
-`<webcpp/formats.hpp>` includes every format but `regex`, whose header
-`<webcpp/formats/regex.hpp>` brings the Unicode tables of ECMA-262's classes.
-formats needs Boost 1.92 or newer (URL, whose compiled part webcpp builds from
+`<webcpp/lexical.hpp>` includes every format but `regex`, whose header
+`<webcpp/lexical/regex.hpp>` brings the Unicode tables of ECMA-262's classes.
+lexical needs Boost 1.92 or newer (URL, whose compiled part webcpp builds from
 Boost's sources, and System), webcpp's configuration, config, and webcpp::idna,
-which `/webcpp/formats//formats` brings. It runs natively,
+which `/webcpp/lexical//lexical` brings. It runs natively,
 on wasm32-wasip2 and wasm32-wasip3, and on emscripten.
 
 ## Building and testing
 
-formats is developed inside the webcpp superproject, as a Boost library is
+lexical is developed inside the webcpp superproject, as a Boost library is
 developed inside Boost:
 
     git clone --recursive https://github.com/webcpporg/webcpp
     cd webcpp
-    b2 libs/formats/test libs/formats/example
+    b2 libs/lexical/test libs/lexical/example
 
 builds the tests and the examples natively, runs every example and compares
 its output with the `.expected` file beside it.
 `toolset=clang-wasip2 testing.launcher=wasmtime`,
 `toolset=clang-wasip3 testing.launcher=wasmtime` and `toolset=emscripten`
-do the same for WebAssembly. `b2 -a libs/formats/test/oracle//oracle`
+do the same for WebAssembly. `b2 -a libs/lexical/test/oracle//oracle`
 compares the verdicts of V8 with the committed ones, and
-`b2 -a libs/formats/test//generated` checks the generated files against
+`b2 -a libs/lexical/test//generated` checks the generated files against
 their generators.
 
 ## Documentation
 
-formats' page, with its API reference, is published at
-<https://webcpporg.github.io/libs/formats/>; `b2 libs/formats/doc` builds it
+lexical's page, with its API reference, is published at
+<https://webcpporg.github.io/libs/lexical/>; `b2 libs/lexical/doc` builds it
 into `doc/html/index.html`.
 
 ## Unicode data
 
-The tables of formats' regular expressions and the patterns of its tests are
+The tables of lexical's regular expressions and the patterns of its tests are
 derived from Unicode's data files, under the Unicode License v3, whose notice
-is the appendix "Unicode data" of formats' page. formats' code is under the
+is the appendix "Unicode data" of lexical's page. lexical's code is under the
 Boost Software License alone.
 
 ## License

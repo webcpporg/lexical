@@ -4,10 +4,10 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// formats' rules composed with Boost.URL's combinators: an internationalized host and an optional
+// lexical's rules composed with Boost.URL's combinators: an internationalized host and an optional
 // port, and who refused what.
 
-#include <webcpp/formats.hpp>
+#include <webcpp/lexical.hpp>
 
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/optional_rule.hpp>
@@ -22,7 +22,7 @@
 #include <string_view>
 
 namespace urlg = boost::urls::grammar;
-namespace fg = webcpp::formats::grammar;
+namespace fg = webcpp::lexical::grammar;
 
 int main() {
     // tag::host_port[]

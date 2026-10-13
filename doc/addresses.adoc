@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-addresses]
+[#lexical-addresses]
 == Addresses
 
 `is_ipv4` and `is_ipv6` are Boost.URL's own rules,
@@ -14,27 +14,27 @@ RFC 2673's dotted quad, each part 0 to 255 without a leading zero (RFC
 3986's `dec-octet`), so `192.168.0.01` is invalid. An IPv6 address is one of
 RFC 4291 2.2's three text forms, without a zone id or a prefix length.
 
-[#formats-hostnames]
+[#lexical-hostnames]
 === Host names
 
 `is_hostname` checks RFC 1123 2.1's host names: labels of 1 to 63 letters,
 digits and hyphens, no hyphen first or last, joined by single dots, the name
 at most 253 octets, no empty label and so no trailing dot. A label that
 starts with `+xn--+`, in any case, is an A-label, an internationalized label
-in its ASCII form: formats lowercases it, as UTS 46 maps an ASCII label, and
+in its ASCII form: lexical lowercases it, as UTS 46 maps an ASCII label, and
 asks `webcpp::idna` whether IDNA2008 accepts it, decoded, canonical and with
 the Bidi rule of the label alone, the verdict `is_idn_hostname` gives that
 label. Another label with `+--+` in its third and fourth places, an R-LDH
 label such as `+ab--cd+`, is a valid host name, as RFC 1123 says, and not an
 internationalized one (RFC 5890 2.3.1).
 
-formats judges each A-label alone, a decision of its own, so RFC 5893's
+lexical judges each A-label alone, a decision of its own, so RFC 5893's
 Bidi rule across the labels of a name, section 2, is checked only by
 `is_idn_hostname`: `+0a.xn--4db+` is a host name, while its U-label form,
 `0a.` and a Hebrew letter, is no internationalized host name. The two
 formats differ here by that decision, as they do on R-LDH labels.
 
-[#formats-idn-hostnames]
+[#lexical-idn-hostnames]
 === Internationalized host names
 
 `is_idn_hostname` checks a host name that may hold any script, by UTS 46's
@@ -64,7 +64,7 @@ A refused name's reason is idna's: the rule answers the `idna::error` that
 `to_ascii` returned, `contexto` for a middle dot outside `l·l`, `bidi` for
 `0a.` and a Hebrew letter.
 
-[#formats-email]
+[#lexical-email]
 === E-mail addresses
 
 `is_email` checks RFC 5321 4.1.2's Mailbox, the address of an SMTP
@@ -91,7 +91,7 @@ Its address literal is a composition of Boost.URL's combinators,
 literal's rule or `hostname_rule`, so that the reason a host name was
 refused, idna's for an A-label, reaches the caller; Boost.URL's
 `variant_rule` answers `mismatch` when every alternative fails. A grammar of a
-program's own composes formats' rules the same way (<<formats-composing>>).
+program's own composes lexical's rules the same way (<<lexical-composing>>).
 
 `is_idn_email` checks RFC 6531's internationalized Mailbox: the local part
 may hold any well-formed non-ASCII UTF-8, C1 controls and noncharacters

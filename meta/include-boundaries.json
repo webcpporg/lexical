@@ -2,43 +2,43 @@
     "boundaries": [
         {
             "headers": [
-                "include/webcpp/formats.hpp",
-                "include/webcpp/formats/*.hpp",
-                "include/webcpp/formats/detail/*.hpp"
+                "include/webcpp/lexical.hpp",
+                "include/webcpp/lexical/*.hpp",
+                "include/webcpp/lexical/detail/*.hpp"
             ],
             "except": [
-                "include/webcpp/formats/regex.hpp",
-                "include/webcpp/formats/detail/regex_*.hpp"
+                "include/webcpp/lexical/regex.hpp",
+                "include/webcpp/lexical/detail/regex_*.hpp"
             ],
-            "must-not-include": ["webcpp/formats/regex", "webcpp/formats/detail/regex_"],
-            "why": "only regex.hpp brings the Unicode tables of ECMA-262's classes, which formats.hpp leaves out"
+            "must-not-include": ["webcpp/lexical/regex", "webcpp/lexical/detail/regex_"],
+            "why": "only regex.hpp brings the Unicode tables of ECMA-262's classes, which lexical.hpp leaves out"
         },
         {
             "headers": [
-                "include/webcpp/formats.hpp",
-                "include/webcpp/formats/*.hpp",
-                "include/webcpp/formats/detail/*.hpp"
+                "include/webcpp/lexical.hpp",
+                "include/webcpp/lexical/*.hpp",
+                "include/webcpp/lexical/detail/*.hpp"
             ],
             "must-not-include": ["webcpp/idna/detail"],
-            "why": "formats uses idna's public interface"
+            "why": "lexical uses idna's public interface"
         },
         {
             "headers": [
-                "include/webcpp/formats.hpp",
-                "include/webcpp/formats/*.hpp",
-                "include/webcpp/formats/detail/*.hpp"
+                "include/webcpp/lexical.hpp",
+                "include/webcpp/lexical/*.hpp",
+                "include/webcpp/lexical/detail/*.hpp"
             ],
             "must-not-include": ["boost/json"],
             "why": "JSON is the tests', not the library's"
         },
         {
             "headers": [
-                "include/webcpp/formats.hpp",
-                "include/webcpp/formats/*.hpp",
-                "include/webcpp/formats/detail/*.hpp"
+                "include/webcpp/lexical.hpp",
+                "include/webcpp/lexical/*.hpp",
+                "include/webcpp/lexical/detail/*.hpp"
             ],
             "must-not-include": ["boost/regex", "webcpp/regex", "srell"],
-            "why": "is_regex is a syntax validator of formats' own: formats runs no regular expression and depends on no regex library"
+            "why": "is_regex is a syntax validator of lexical's own: lexical runs no regular expression and depends on no regex library"
         }
     ]
 }

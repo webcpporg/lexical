@@ -4,11 +4,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-introduction]
+[#lexical-introduction]
 == Introduction
 
 JSON Schema names string formats, `date-time`, `email`, `hostname`, `uri`,
-`regex` and the others, each defined by an RFC or by ECMA-262. formats checks
+`regex` and the others, each defined by an RFC or by ECMA-262. lexical checks
 each of them as its reference defines it, and nothing more: a validator
 answers whether a string is in the format, and a rule says where in a longer
 input the format's text ends.
@@ -41,37 +41,37 @@ above 0x7F.
 | `regex` | `is_regex` | ECMA-262 `Pattern`, `u` mode
 |===
 
-[#formats-introduction-first]
+[#lexical-introduction-first]
 === A first example
 
 A program that checks a string of a few formats:
 
 [source]
 ----
-include::{examples}/formats_quick_start.cpp[tag=program,indent=0]
+include::{examples}/lexical_quick_start.cpp[tag=program,indent=0]
 ----
 
 It prints:
 
 [listing]
 ----
-include::{examples}/formats_quick_start.expected[]
+include::{examples}/lexical_quick_start.expected[]
 ----
 
 `2021-02-29` is no date, 2021 being no leap year; `+//example.com/p+` is a
 URI reference and no URI, which needs a scheme.
 
-[#formats-introduction-requirements]
+[#lexical-introduction-requirements]
 === Requirements
 
-`<webcpp/formats.hpp>` includes every format but `regex`, whose header
-`<webcpp/formats/regex.hpp>` brings the Unicode tables of ECMA-262's classes;
-the names are in the namespaces `webcpp::formats` and
-`webcpp::formats::grammar`. formats is header-only {cpp}20 and needs Boost
+`<webcpp/lexical.hpp>` includes every format but `regex`, whose header
+`<webcpp/lexical/regex.hpp>` brings the Unicode tables of ECMA-262's classes;
+the names are in the namespaces `webcpp::lexical` and
+`webcpp::lexical::grammar`. lexical is header-only {cpp}20 and needs Boost
 1.92 or newer: Boost.URL, whose compiled part webcpp builds from Boost's
 sources for every target, and Boost.System; and webcpp's configuration,
 config, and webcpp::idna, for internationalized names. A b2
-project uses it through `/webcpp/formats//formats`, which brings all of
+project uses it through `/webcpp/lexical//lexical`, which brings all of
 them:
 
 [listing]

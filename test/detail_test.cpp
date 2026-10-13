@@ -8,9 +8,9 @@
 // sets, RFC 3987's code point classes, and the small rules exactly<N>, ci_literal_rule and
 // repeat_rule.
 
-#include <webcpp/formats/detail/charsets.hpp>
-#include <webcpp/formats/detail/rules.hpp>
-#include <webcpp/formats/detail/utf8.hpp>
+#include <webcpp/lexical/detail/charsets.hpp>
+#include <webcpp/lexical/detail/rules.hpp>
+#include <webcpp/lexical/detail/utf8.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -23,7 +23,7 @@
 #include <iostream>
 #include <string_view>
 
-namespace detail = webcpp::formats::detail;
+namespace detail = webcpp::lexical::detail;
 namespace urlg = boost::urls::grammar;
 
 namespace {

@@ -9,8 +9,8 @@
 // its caller, and a lightweight_test program may be built without exceptions, so the helper ends
 // the program instead, with the errors counted so far.
 
-#ifndef WEBCPP_TEST_FORMATS_REQUIRE_HPP
-#define WEBCPP_TEST_FORMATS_REQUIRE_HPP
+#ifndef WEBCPP_TEST_LEXICAL_REQUIRE_HPP
+#define WEBCPP_TEST_LEXICAL_REQUIRE_HPP
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -28,4 +28,4 @@ inline void require(bool held) {
 
 }  // namespace webcpp::test
 
-#endif  // WEBCPP_TEST_FORMATS_REQUIRE_HPP
+#endif  // WEBCPP_TEST_LEXICAL_REQUIRE_HPP

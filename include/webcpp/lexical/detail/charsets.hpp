@@ -4,17 +4,17 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// The ASCII character sets of formats' grammars, as Boost.URL's lut_chars, and RFC 3987's code
+// The ASCII character sets of lexical's grammars, as Boost.URL's lut_chars, and RFC 3987's code
 // point classes.
 
-#ifndef WEBCPP_FORMATS_DETAIL_CHARSETS_HPP
-#define WEBCPP_FORMATS_DETAIL_CHARSETS_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_CHARSETS_HPP
+#define WEBCPP_LEXICAL_DETAIL_CHARSETS_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
 #include <boost/url/grammar/lut_chars.hpp>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 namespace urlg = boost::urls::grammar;
 
@@ -85,6 +85,6 @@ constexpr bool is_bidi_format(char32_t cp) noexcept {
     return cp == 0x200E || cp == 0x200F || (cp >= 0x202A && cp <= 0x202E);
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_CHARSETS_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_CHARSETS_HPP

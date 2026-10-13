@@ -6,19 +6,19 @@
 
 /**
  URIs and IRIs (RFC 3986, RFC 3987), as validators and Boost.URL rules: `uri` and `uri-reference`
- are Boost.URL's rules with a guard of formats', and the IRIs formats' rules, which map an IRI to a
- URI that Boost.URL parses.
+ are Boost.URL's rules with a guard of lexical's, and the IRIs lexical's rules, which map an IRI to
+ a URI that Boost.URL parses.
 
  @see "URIs and IRIs", in the guide.
 */
-#ifndef WEBCPP_FORMATS_URI_HPP
-#define WEBCPP_FORMATS_URI_HPP
+#ifndef WEBCPP_LEXICAL_URI_HPP
+#define WEBCPP_LEXICAL_URI_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/iri_mapping.hpp>
-#include <webcpp/formats/detail/uri_guard.hpp>
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/detail/iri_mapping.hpp>
+#include <webcpp/lexical/detail/uri_guard.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <boost/url/grammar/error.hpp>
 #include <boost/url/grammar/parse.hpp>
@@ -30,7 +30,7 @@
 #include <memory_resource>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 namespace detail {
 
@@ -324,6 +324,6 @@ inline result<text> iri_reference_rule_t::parse(char const*& it, char const* end
     return detail::urlg::parse(s, grammar::iri_reference_rule_t{&resource}).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_URI_HPP
+#endif  // WEBCPP_LEXICAL_URI_HPP

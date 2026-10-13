@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-= formats: the string formats of JSON Schema for {cpp}
+= lexical: the string formats of JSON Schema for {cpp}
 :toc: left
 :toclevels: 1
 :idprefix:
@@ -13,7 +13,7 @@
 :attribute-missing: warn
 :unicode-version: 17.0.0
 
-formats is a header-only library of validators for the string formats of
+lexical is a header-only library of validators for the string formats of
 JSON Schema, in {cpp}20, one of the libraries of
 https://github.com/webcpporg/webcpp[webcpp]. Each format is a function that
 takes a `std::string_view` and answers `bool`, and, but `regex`, a Boost.URL
@@ -23,7 +23,7 @@ the official JSON-Schema-Test-Suite, and `regex` against V8. Nothing
 allocates but an IRI too long for its inline buffer, through a
 `std::pmr::memory_resource`.
 
-This page teaches formats format by format: what each checks, its rules and
+This page teaches lexical format by format: what each checks, its rules and
 its examples. Every program it shows was compiled and run, natively and for
 wasm32-wasip2, wasm32-wasip3 and emscripten, and printed the output shown
 under it. The <<reference,reference>> that closes it lists every name the
@@ -58,8 +58,8 @@ include::testing.adoc[]
 [#reference]
 == Reference
 
-Every name formats declares, in the namespaces `webcpp::formats` and
-`webcpp::formats::grammar`, from the Doc Comments of its headers: each
+Every name lexical declares, in the namespaces `webcpp::lexical` and
+`webcpp::lexical::grammar`, from the Doc Comments of its headers: each
 function, rule, type and constant with its declaration, what it does and
 how it fails. The other sections teach the library; this one is where a name
 is looked up.

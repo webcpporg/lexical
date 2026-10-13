@@ -9,13 +9,13 @@
 // into storage that is none for ASCII, an inline buffer up to 1,024 octets, and one buffer of a
 // memory resource beyond.
 
-#ifndef WEBCPP_FORMATS_DETAIL_IRI_MAPPING_HPP
-#define WEBCPP_FORMATS_DETAIL_IRI_MAPPING_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_IRI_MAPPING_HPP
+#define WEBCPP_LEXICAL_DETAIL_IRI_MAPPING_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/charsets.hpp>
-#include <webcpp/formats/detail/utf8.hpp>
+#include <webcpp/lexical/detail/charsets.hpp>
+#include <webcpp/lexical/detail/utf8.hpp>
 
 #include <boost/scope/scope_exit.hpp>
 
@@ -27,7 +27,7 @@
 #include <span>
 #include <string_view>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /**
  The mapped octets an IRI takes on the stack: any IRI of up to 341 octets, since mapping at most
@@ -179,6 +179,6 @@ bool with_mapped_iri(std::string_view run, std::pmr::memory_resource* resource, 
     return parse(std::string_view(buffer, *length));
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_IRI_MAPPING_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_IRI_MAPPING_HPP

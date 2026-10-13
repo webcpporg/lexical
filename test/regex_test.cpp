@@ -4,17 +4,17 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// ECMA-262 patterns in u mode, read by formats' validator: alternatives and empty patterns,
+// ECMA-262 patterns in u mode, read by lexical's validator: alternatives and empty patterns,
 // assertions, quantifiers and braces, groups with their names, ECMAScript 2025's modifiers and
 // duplicate group names, lookarounds of any width, every escape and backreference, classes and
 // their ranges, Unicode properties, ill-formed UTF-8 refused and NUL a literal, the Unicode 17
 // names the properties are read from, and hostile patterns answered as values: nested up to
 // max_regex_nesting and refused past it, wide and long ones judged up to max_regex_length.
 
-#include <webcpp/formats/detail/regex_tables.hpp>
-#include <webcpp/formats/detail/regex_unicode.hpp>
-#include <webcpp/formats/detail/regex_validator.hpp>
-#include <webcpp/formats/regex.hpp>
+#include <webcpp/lexical/detail/regex_tables.hpp>
+#include <webcpp/lexical/detail/regex_unicode.hpp>
+#include <webcpp/lexical/detail/regex_validator.hpp>
+#include <webcpp/lexical/regex.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -24,16 +24,16 @@
 #include <string_view>
 #include <utility>
 
-namespace formats = webcpp::formats;
-namespace detail = webcpp::formats::detail;
-namespace tables = webcpp::formats::detail::regex_tables;
+namespace lexical = webcpp::lexical;
+namespace detail = webcpp::lexical::detail;
+namespace tables = webcpp::lexical::detail::regex_tables;
 
 namespace {
 
 using detail::regex_verdict;
 
 void regex(std::string_view pattern, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_regex(pattern), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_regex(pattern), valid)) {
         std::cerr << "regex: \"" << pattern << "\"\n";
     }
 }
@@ -55,7 +55,7 @@ std::string nested(std::string_view open, std::string_view close, std::size_t le
 
 /** The verdict check_regex gives `pattern`, and a why exactly when the verdict is not valid. */
 void judged(std::string_view pattern, regex_verdict verdict,
-            std::size_t max_nesting = formats::max_regex_nesting) {
+            std::size_t max_nesting = lexical::max_regex_nesting) {
     const detail::regex_check check = detail::check_regex(pattern, max_nesting);
     const bool verdict_held = BOOST_TEST(check.verdict == verdict);
     const bool why_held = BOOST_TEST_EQ(check.why.empty(), verdict == regex_verdict::valid);
@@ -419,8 +419,8 @@ void the_verdicts() {
     judged("(a)", regex_verdict::beyond_bounds, 0);
     judged("((a))", regex_verdict::beyond_bounds, 1);
     judged("((a))", regex_verdict::valid, 2);
-    judged(nested("(", ")", formats::max_regex_nesting), regex_verdict::valid);
-    judged(nested("(", ")", formats::max_regex_nesting + 1), regex_verdict::beyond_bounds);
+    judged(nested("(", ")", lexical::max_regex_nesting), regex_verdict::valid);
+    judged(nested("(", ")", lexical::max_regex_nesting + 1), regex_verdict::beyond_bounds);
     // The reader's own limit holds whatever nesting the caller asks for.
     judged(nested("(", ")", 65), regex_verdict::beyond_bounds, 1000);
     judged("a)", regex_verdict::invalid);
@@ -429,22 +429,22 @@ void the_verdicts() {
     judged("a{3,1}", regex_verdict::invalid);
     judged("\\u{110000}", regex_verdict::invalid);
     judged("\303", regex_verdict::invalid);
-    static_assert(detail::check_regex("(?<n>a)\\k<n>", formats::max_regex_nesting).verdict ==
+    static_assert(detail::check_regex("(?<n>a)\\k<n>", lexical::max_regex_nesting).verdict ==
                       regex_verdict::valid,
                   "check_regex is constexpr");
     static_assert(
-        detail::check_regex("a{3,1}", formats::max_regex_nesting).verdict == regex_verdict::invalid,
+        detail::check_regex("a{3,1}", lexical::max_regex_nesting).verdict == regex_verdict::invalid,
         "check_regex is constexpr");
-    static_assert(noexcept(formats::is_regex(std::string_view{})), "is_regex does not throw");
+    static_assert(noexcept(lexical::is_regex(std::string_view{})), "is_regex does not throw");
     static_assert(noexcept(detail::check_regex(std::string_view{}, 0)),
                   "check_regex does not throw");
-    static_assert(formats::max_regex_nesting >= 32, "the nesting bound is at least 32");
+    static_assert(lexical::max_regex_nesting >= 32, "the nesting bound is at least 32");
 }
 
 // The patterns past the bounds are valid in V8 and refused here by design: the bounds are the
 // library's, so that a hostile pattern cannot exhaust a WebAssembly program's stack or memory.
 void hostile_patterns() {
-    const std::size_t bound = formats::max_regex_nesting;
+    const std::size_t bound = lexical::max_regex_nesting;
     for (const auto& [open, close] : {
              std::pair<std::string_view, std::string_view>{"(", ")"},
              {"(?:", ")*"},
@@ -468,10 +468,10 @@ void hostile_patterns() {
     regex("(a)" + repeated("\\1", 5000), true);
     regex("[" + repeated("\\D", 5000) + "]", true);
     // The length: a pattern of max_regex_length bytes is judged, and a longer one refused unread.
-    regex(repeated("a", formats::max_regex_length), true);
-    regex(repeated("a", formats::max_regex_length + 1), false);
-    regex(repeated("\\p{L}", formats::max_regex_length / 5), true);
-    regex("[" + repeated("a-z", (formats::max_regex_length / 3) - 1) + "]", true);
+    regex(repeated("a", lexical::max_regex_length), true);
+    regex(repeated("a", lexical::max_regex_length + 1), false);
+    regex(repeated("\\p{L}", lexical::max_regex_length / 5), true);
+    regex("[" + repeated("a-z", (lexical::max_regex_length / 3) - 1) + "]", true);
 }
 
 }  // namespace

@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-identifiers]
+[#lexical-identifiers]
 == Identifiers
 
 `is_uuid` checks RFC 9562's string form of a UUID: 32 hexadecimal digits in
@@ -24,7 +24,7 @@ index manipulation follow the integer, a sign and another non-negative
 integer without a leading zero (`0+1`, `0-0`); drafts 7 and 2019-09 cite
 draft-handrews-relative-json-pointer-01, which has none. The draft's grammar
 puts the manipulation only before a JSON Pointer, yet its own example `+0-1#+`
-puts it before `+#+`; formats accepts both, so `+1-1#+` is valid too. The
+puts it before `+#+`; lexical accepts both, so `+1-1#+` is valid too. The
 function takes that choice as its second argument:
 `index_manipulation::allowed`, the default, for 2020-12 and v1, and
 `index_manipulation::refused` for 7 and 2019-09. The rule takes it as

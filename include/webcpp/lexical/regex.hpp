@@ -6,21 +6,21 @@
 
 /**
  Regular expressions, JSON Schema's `regex`: whether a string is an ECMA-262 pattern in `u` mode,
- judged by formats' own syntax validator. Nothing is compiled or run, and nothing is allocated.
+ judged by lexical's own syntax validator. Nothing is compiled or run, and nothing is allocated.
 
  @see "Regular expressions", in the guide.
 */
-#ifndef WEBCPP_FORMATS_REGEX_HPP
-#define WEBCPP_FORMATS_REGEX_HPP
+#ifndef WEBCPP_LEXICAL_REGEX_HPP
+#define WEBCPP_LEXICAL_REGEX_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/regex_validator.hpp>
+#include <webcpp/lexical/detail/regex_validator.hpp>
 
 #include <cstddef>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 /**
  The longest pattern `is_regex` judges, in bytes: 65,536.
@@ -64,6 +64,6 @@ inline constexpr std::size_t max_regex_nesting = 32;
     return detail::check_regex(pattern, max_regex_nesting).verdict == detail::regex_verdict::valid;
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_REGEX_HPP
+#endif  // WEBCPP_LEXICAL_REGEX_HPP

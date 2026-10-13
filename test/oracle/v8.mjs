@@ -5,7 +5,7 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 // Asks V8 which patterns of the cases directory are ECMA-262 regular expressions in u mode, the
-// verdicts formats' is_regex must give: `new RegExp(pattern, "u")` throws a SyntaxError on the
+// verdicts lexical's is_regex must give: `new RegExp(pattern, "u")` throws a SyntaxError on the
 // others. It writes, in the output directory, verdicts.json, one verdict a line, 1 or 0, in the
 // order of patterns.json.
 //

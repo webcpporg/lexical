@@ -6,21 +6,21 @@
 
 /**
  E-mail addresses, RFC 5321's Mailbox and RFC 6531's internationalized one, as validators and
- Boost.URL rules composed of Boost.URL's combinators over formats' terminals and Boost.URL's IP
+ Boost.URL rules composed of Boost.URL's combinators over lexical's terminals and Boost.URL's IP
  rules.
 
  @see "Addresses", in the guide.
 */
-#ifndef WEBCPP_FORMATS_EMAIL_HPP
-#define WEBCPP_FORMATS_EMAIL_HPP
+#ifndef WEBCPP_LEXICAL_EMAIL_HPP
+#define WEBCPP_LEXICAL_EMAIL_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/charsets.hpp>
-#include <webcpp/formats/detail/rules.hpp>
-#include <webcpp/formats/detail/utf8.hpp>
-#include <webcpp/formats/grammar.hpp>
-#include <webcpp/formats/hostname.hpp>
+#include <webcpp/lexical/detail/charsets.hpp>
+#include <webcpp/lexical/detail/rules.hpp>
+#include <webcpp/lexical/detail/utf8.hpp>
+#include <webcpp/lexical/grammar.hpp>
+#include <webcpp/lexical/hostname.hpp>
 
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/error.hpp>
@@ -34,7 +34,7 @@
 #include <optional>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 namespace detail {
 
@@ -333,6 +333,6 @@ inline result<text> idn_email_rule_t::parse(char const*& it, char const* end) co
     return detail::urlg::parse(s, grammar::idn_email_rule).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_EMAIL_HPP
+#endif  // WEBCPP_LEXICAL_EMAIL_HPP

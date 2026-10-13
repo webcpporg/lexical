@@ -7,12 +7,12 @@
 // Compares is_regex with V8 on every pattern of test/regex/cases/patterns.json, which
 // tools/generate_patterns.py writes: V8's verdicts, `new RegExp(pattern, "u")` accepting the
 // pattern or throwing a SyntaxError, are test/regex/expected/verdicts.json, which only the oracle
-// of test/oracle writes (b2 libs/formats/test/oracle//update-expected). Every verdict must be
+// of test/oracle writes (b2 libs/lexical/test/oracle//update-expected). Every verdict must be
 // V8's; each that is not is named, with the pattern, the first ones on the standard error. It runs
 // on every target, the two files reaching a WASI program through webcpp.data;
-// WEBCPP_TEST_FORMATS_REGEX names their directory, from test/Jamfile.
+// WEBCPP_TEST_LEXICAL_REGEX names their directory, from test/Jamfile.
 
-#include <webcpp/formats/regex.hpp>
+#include <webcpp/lexical/regex.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/json.hpp>
@@ -53,7 +53,7 @@ std::optional<json::array> read_array(const fs::path& path) {
 }
 
 void every_verdict_is_v8s() {
-    const fs::path root(WEBCPP_TEST_FORMATS_REGEX);
+    const fs::path root(WEBCPP_TEST_LEXICAL_REGEX);
     const std::optional<json::array> patterns = read_array(root / "cases" / "patterns.json");
     const std::optional<json::array> verdicts = read_array(root / "expected" / "verdicts.json");
     if (!BOOST_TEST(patterns.has_value() && verdicts.has_value())) {
@@ -73,7 +73,7 @@ void every_verdict_is_v8s() {
         const json::string& text = pattern.get_string();
         const bool v8 = verdict.get_int64() == 1;
         valid += v8 ? 1 : 0;
-        if (webcpp::formats::is_regex(std::string_view(text.data(), text.size())) == v8) {
+        if (webcpp::lexical::is_regex(std::string_view(text.data(), text.size())) == v8) {
             continue;
         }
         if (++differ <= shown) {

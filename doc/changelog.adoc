@@ -5,14 +5,14 @@
 // https://www.boost.org/LICENSE_1_0.txt)
 
 [appendix]
-[#formats-changelog]
+[#lexical-changelog]
 == Changelog
 
-What changed in formats in each version of webcpp, newest first, one line
+What changed in lexical in each version of webcpp, newest first, one line
 per change. "Unreleased" is what the next version brings. The release notes
 of every version are on webcpp's index page.
 
-[#formats-changelog-unreleased]
+[#lexical-changelog-unreleased]
 === Unreleased
 
 // tag::unreleased[]

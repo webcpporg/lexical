@@ -4,11 +4,11 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# A program that includes <webcpp/formats/regex.hpp> holds the Unicode tables
+# A program that includes <webcpp/lexical/regex.hpp> holds the Unicode tables
 # of ECMA-262's classes, as idna's tests of its tables do, which MSVC compiles
 # only with /bigobj: the examples take it on MSVC, not measured here, where no
 # Windows machine is.
-project : requirements <library>/webcpp/formats//formats
+project : requirements <library>/webcpp/lexical//lexical
   <toolset>msvc:<cxxflags>/bigobj ;
 
 import webcpp ;
@@ -16,7 +16,7 @@ import webcpp ;
 webcpp.targets native wasip2 wasip3 emscripten ;
 
 # The guide's programs, each shown on the page with the output it prints.
-webcpp.example formats_quick_start.cpp ;
-webcpp.example formats_grammar.cpp ;
-webcpp.example formats_iri.cpp ;
-webcpp.example formats_regex.cpp ;
+webcpp.example lexical_quick_start.cpp ;
+webcpp.example lexical_grammar.cpp ;
+webcpp.example lexical_iri.cpp ;
+webcpp.example lexical_regex.cpp ;

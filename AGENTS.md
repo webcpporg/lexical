@@ -1,23 +1,23 @@
-# Working on formats
+# Working on lexical
 
 webcpp's rules apply here: read the superproject's
 [AGENTS.md](../../AGENTS.md)
 (<https://github.com/webcpporg/webcpp/blob/main/AGENTS.md>) first. This file
-holds only what is specific to formats.
+holds only what is specific to lexical.
 
-- **A library of webcpp's own.** formats ports nothing: its evidence is the
+- **A library of webcpp's own.** lexical ports nothing: its evidence is the
   RFCs it cites, its unit tests, the official JSON-Schema-Test-Suite run
   directly against its validators, and V8, whose verdicts on patterns
   `regex_v8` compares `is_regex` with. Its oracle, `test/oracle`, is V8 alone
   (no package), and it has no twins.
 - **A format is a rule and a function.** Every format is a Boost.URL rule in
-  `webcpp::formats::grammar` and a validator `is_<name>`, which is the rule
+  `webcpp::lexical::grammar` and a validator `is_<name>`, which is the rule
   parsing the whole string. A change to one is a change to the other; the
   unit tests check that they agree on every input they hold.
-- **Boost.URL is never modified.** formats composes Boost.URL's grammar
-  library and adds terminals of its own; where Boost.URL is wrong, formats
+- **Boost.URL is never modified.** lexical composes Boost.URL's grammar
+  library and adds terminals of its own; where Boost.URL is wrong, lexical
   guards it and offers the fix upstream.
-- **What raises.** formats raises nothing of its own; only an allocation may
+- **What raises.** lexical raises nothing of its own; only an allocation may
   throw, and only the IRI functions allocate, through a memory resource they
   are given. `is_regex` allocates nothing.
 - **The JSON Schema suite.** `test/suite_test.cpp` runs the format tests of
@@ -44,7 +44,7 @@ holds only what is specific to formats.
 - **The bracket guard.** Boost.URL 1.92's query characters hold `[` and `]`
   (`boost/url/rfc/detail/charsets.hpp`, `query_chars`), which RFC 3986
   holds only around an IP literal. `refuses_bracket_in_query` refuses them
-  in formats' `uri_rule` and `uri_reference_rule`, so `is_uri`,
+  in lexical's `uri_rule` and `uri_reference_rule`, so `is_uri`,
   `is_uri_reference` and the IRIs, which parse their mapping with those
   rules, refuse them alike. `uri_test`'s
   `boost_url_still_takes_brackets_in_a_query` fails the day the configured
@@ -54,7 +54,7 @@ holds only what is specific to formats.
 - **The fragment guard.** Boost.URL 1.92's fragment characters hold `#`
   (`boost/url/rfc/detail/charsets.hpp`, `fragment_chars`, on purpose
   upstream), which RFC 3986 3.5 refuses in a fragment.
-  `refuses_number_sign_in_fragment` refuses it in formats' `uri_rule` and
+  `refuses_number_sign_in_fragment` refuses it in lexical's `uri_rule` and
   `uri_reference_rule`, wired beside the bracket guard, so every form
   agrees; a `%23` stays valid. `uri_test`'s
   `boost_url_still_takes_a_number_sign_in_a_fragment` fails the day the
@@ -64,37 +64,37 @@ holds only what is specific to formats.
 - **The zone guard.** Boost.URL 1.92's IP literal takes RFC 6874's zone
   identifier (`boost/url/rfc/detail/impl/ipv6_addrz_rule.hpp`), which RFC
   9844 withdrew from RFC 3986's syntax in 2025 when it obsoleted RFC 6874.
-  `refuses_zone_identifier` refuses it in formats' `uri_rule` and
+  `refuses_zone_identifier` refuses it in lexical's `uri_rule` and
   `uri_reference_rule`, wired beside the fragment guard. `uri_test`'s
   `boost_url_still_takes_a_zone_identifier` fails the day the configured
   Boost refuses one itself, and the guard then leaves in a change of its
   own, with a changelog line, while `no_zone_identifier` stays.
-- **What formats keeps of Boost.URL.** Compared with RFC 3986's ABNF, one
-  verdict of Boost.URL 1.92 is stricter than RFC 3986, which formats keeps,
+- **What lexical keeps of Boost.URL.** Compared with RFC 3986's ABNF, one
+  verdict of Boost.URL 1.92 is stricter than RFC 3986, which lexical keeps,
   as it never loosens Boost.URL: an `IPvFuture` led by an uppercase `V`
   (RFC 5234 makes the ABNF's `"v"` case-insensitive) is refused.
   `uri_test`'s `ipvfuture_keeps_boost_urls_verdict` fails the day Boost
   takes it: its two verdicts and `iri_test`'s on `http://[V1.x]/` then flip
   to valid, RFC 3986's, and this bullet and the page's "Known deviations"
   lose it.
-- **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. formats checks
+- **Why IRIs are mapped.** Boost.URL parses RFC 3986 only. lexical checks
   what RFC 3987 adds, the non-ASCII code points and where they may be, then
   maps each of their octets to `%XX` and lets Boost.URL judge the structure:
-  a `%XX` is valid exactly where RFC 3987 allows `ucschar`. formats still
+  a `%XX` is valid exactly where RFC 3987 allows `ucschar`. lexical still
   refuses a non-ASCII code point in an IP literal before mapping, which keeps
   that verdict independent of the zone guard. The mapped copy is the one
-  allocation of formats' validators, and only beyond 1,024 mapped octets; an
+  allocation of lexical's validators, and only beyond 1,024 mapped octets; an
   ASCII IRI is never copied.
 - **Boost.URL's compiled part.** `/webcpp//boost_url`, which `build.jam`
   names, builds Boost.URL from Boost's sources for every target: `ipv4_address`
   is defined there. On MSVC, which never defines
   `BOOST_URL_HAS_CXX20_CONSTEXPR`, even the grammar's error category is
   defined there, so no format links without it.
-- **idna.** formats asks `webcpp::idna`'s public interface, never its
+- **idna.** lexical asks `webcpp::idna`'s public interface, never its
   `detail` (the include boundary checks it): a host name's A-label, in any
   case, is lowercased and judged by `idna::check_label`, one label at a
-  time. A verdict of idna's that a test of formats finds wrong becomes a
-  test in idna, red first, reported to idna's track; formats never works
+  time. A verdict of idna's that a test of lexical finds wrong becomes a
+  test in idna, red first, reported to idna's track; lexical never works
   around it.
 - **Internationalized names.** `idn_hostname_rule` and `idna_label_rule`
   hand their whole run to `idna::to_ascii` with its default options, into a
@@ -105,11 +105,11 @@ holds only what is specific to formats.
   so that a change of idna's Unicode version that adds one fails it. An
   internationalized Mailbox's lengths, 64 octets for its local part and 254
   for the whole, are measured as written, in UTF-8.
-- **The regex validator.** `is_regex` is formats' own ECMA-262 syntax
+- **The regex validator.** `is_regex` is lexical's own ECMA-262 syntax
   validator, `detail/regex_validator.hpp`, over the tables of
   `detail/regex_unicode.hpp` and `detail/regex_tables.hpp`: a recursive-descent
   reader of well-formed UTF-8 that answers whether a pattern is an ECMA-262
-  Pattern in `u` mode, early errors included, and allocates nothing. formats
+  Pattern in `u` mode, early errors included, and allocates nothing. lexical
   depends on no regex library. Never change the validator's grammar without running `regex_v8` on every
   target.
 - **The regex tables.** `detail/regex_tables.hpp` is generated by

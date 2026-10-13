@@ -9,7 +9,7 @@
 // that an IDNA library was measured accepting; and internationalized host names, UTS 46's mapping
 // and IDNA2008's validity through idna, their lengths, and where their rules stop and why.
 
-#include <webcpp/formats/hostname.hpp>
+#include <webcpp/lexical/hostname.hpp>
 
 #include <webcpp/idna/errors.hpp>
 #include <webcpp/idna/options.hpp>
@@ -28,17 +28,17 @@
 #include <string>
 #include <string_view>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 void hostname(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_hostname(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_hostname(text), valid)) {
         std::cerr << "hostname: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_hostname(text), urlg::parse(text, fg::hostname_rule).has_value());
+    BOOST_TEST_EQ(lexical::is_hostname(text), urlg::parse(text, fg::hostname_rule).has_value());
 }
 
 void labels_and_names_at_their_limits() {
@@ -103,7 +103,7 @@ void a_labels_in_either_case() {
     hostname("xn--X", false);
     hostname("XN--aa---o47jg78q", false);
     hostname("xn--hello-txk", false);
-    // formats judges each A-label alone, a decision of its own, so RFC 5893's Bidi rule across
+    // lexical judges each A-label alone, a decision of its own, so RFC 5893's Bidi rule across
     // the labels of a name is checked only by idn-hostname: this is a host name, and its U-label
     // form, 0a. and HEBREW LETTER ALEF, is no idn-hostname.
     hostname("0a.xn--4db", true);
@@ -192,10 +192,10 @@ void a_refusal_leaves_the_iterator() {
 }
 
 void idn_hostname(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_idn_hostname(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_idn_hostname(text), valid)) {
         std::cerr << "idn-hostname: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_idn_hostname(text),
+    BOOST_TEST_EQ(lexical::is_idn_hostname(text),
                   urlg::parse(text, fg::idn_hostname_rule).has_value());
 }
 
@@ -302,9 +302,9 @@ void idn_host_names() {
         idn_hostname(text, false);
     }
     // R-LDH: a host name (RFC 1123), never an internationalized one (RFC 5890 2.3.1).
-    BOOST_TEST(formats::is_hostname("ab--cd.example"));
+    BOOST_TEST(lexical::is_hostname("ab--cd.example"));
     // A host name's labels are judged one by one; an IDN's Bidi rule spans its labels.
-    BOOST_TEST(formats::is_hostname("0a.xn--4db"));
+    BOOST_TEST(lexical::is_hostname("0a.xn--4db"));
     idn_hostname(std::string_view("b\xC3\xBC"
                                   "cher\0.example",
                                   16),

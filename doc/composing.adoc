@@ -4,11 +4,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-composing]
+[#lexical-composing]
 == Composing rules
 
 Every format but `regex` is also a Boost.URL rule, in
-`webcpp::formats::grammar`: an object whose type `<name>_rule_t` is public,
+`webcpp::lexical::grammar`: an object whose type `<name>_rule_t` is public,
 so a rule that takes a parameter, `time_rule_t{leap_seconds::refused}` or
 `iri_rule_t{&resource}`, is spelled without a factory. A rule yields the
 text it matched, as a `grammar::text`; `uri_rule` and `uri_reference_rule`
@@ -26,14 +26,14 @@ category:
 
 [source]
 ----
-include::{examples}/formats_grammar.cpp[tag=host_port,indent=0]
+include::{examples}/lexical_grammar.cpp[tag=host_port,indent=0]
 ----
 
 It prints:
 
 [listing]
 ----
-include::{examples}/formats_grammar.expected[]
+include::{examples}/lexical_grammar.expected[]
 ----
 
 Where a rule stops inside a longer input is part of its contract:
@@ -53,7 +53,7 @@ Where a rule stops inside a longer input is part of its contract:
 
 Each validates the text it took and fails as a whole rather than match a
 shorter prefix, and a rule that fails leaves its input where it was.
-`idna_label_rule` is a terminal of formats' own that asks `webcpp::idna` for
+`idna_label_rule` is a terminal of lexical's own that asks `webcpp::idna` for
 its verdict, so a grammar joins labels with separators of its own. It judges
 each label alone: a grammar that joins labels into a name checks what spans
 the name itself, RFC 5893's Bidi rule across its labels (section 2) and its
@@ -62,14 +62,14 @@ the name itself, RFC 5893's Bidi rule across its labels (section 2) and its
 `0a.` and a label of a Hebrew letter are two valid labels and no valid name.
 
 An internationalized rule's error is idna's, the `idna::error` that refused
-the name (<<formats-errors>>), but only where nothing discards it: Boost.URL's
+the name (<<lexical-errors>>), but only where nothing discards it: Boost.URL's
 `variant_rule` answers `mismatch` when every alternative fails, whatever
-each one said. formats' e-mail rules look for `[` themselves rather than
+each one said. lexical's e-mail rules look for `[` themselves rather than
 make the domain an alternative, so that idna's reason reaches the caller; a
 grammar that needs that reason does the same.
 
 Two facts of Boost.URL shape a composition. A `range_rule` over a rule
 larger than 128 bytes keeps it in a pool of Boost.URL's own, which
-allocates: pass such a rule through `boost::urls::grammar::ref`, as formats
+allocates: pass such a rule through `boost::urls::grammar::ref`, as lexical
 does. And `parse` of a whole string fails with `error::leftover` when the
 rule stops early, which is how a validator refuses trailing input.

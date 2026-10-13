@@ -8,7 +8,7 @@
 // probes of the corners the suite misses, literals, names and prefixes at their edges, NUL, and
 // where the rule stops.
 
-#include <webcpp/formats/uri_template.hpp>
+#include <webcpp/lexical/uri_template.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/error.hpp>
@@ -18,18 +18,18 @@
 #include <iostream>
 #include <string_view>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
 void uri_template(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_uri_template(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_uri_template(text), valid)) {
         std::cerr << "uri-template: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_uri_template(text),
+    BOOST_TEST_EQ(lexical::is_uri_template(text),
                   urlg::parse(text, fg::uri_template_rule).has_value());
 }
 

@@ -8,7 +8,7 @@
 // years, leap seconds at each offset under both policies, the case of T and Z, the fraction's
 // length, appendix A's durations, and where each rule stops inside a larger grammar.
 
-#include <webcpp/formats/date_time.hpp>
+#include <webcpp/lexical/date_time.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -25,8 +25,8 @@
 #include <string_view>
 #include <tuple>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
@@ -62,7 +62,7 @@ void rfc_3339_examples() {
         sample{.text = "1990-12-31T15:59:60-08:00", .valid = true},
         sample{.text = "1937-01-01T12:00:27.87+00:20", .valid = true},
     };
-    const auto is = [](std::string_view s) { return formats::is_date_time(s); };
+    const auto is = [](std::string_view s) { return lexical::is_date_time(s); };
     check("RFC 3339 5.8", examples, is, fg::date_time_rule);
 }
 
@@ -70,16 +70,16 @@ void every_month_ends_where_it_should() {
     constexpr std::array<int, 12> last{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     for (int month = 1; month <= 12; ++month) {
         const int days = last[static_cast<std::size_t>(month - 1)];
-        BOOST_TEST(formats::is_date("2021-" + two_digits(month) + "-" + two_digits(days)));
-        BOOST_TEST(!formats::is_date("2021-" + two_digits(month) + "-" + two_digits(days + 1)));
-        BOOST_TEST_EQ(webcpp::formats::detail::days_in_month(2021, month), days);
+        BOOST_TEST(lexical::is_date("2021-" + two_digits(month) + "-" + two_digits(days)));
+        BOOST_TEST(!lexical::is_date("2021-" + two_digits(month) + "-" + two_digits(days + 1)));
+        BOOST_TEST_EQ(webcpp::lexical::detail::days_in_month(2021, month), days);
     }
     for (const std::string_view refused : {"2021-00-01", "2021-13-01", "2021-01-00"}) {
-        BOOST_TEST(!formats::is_date(refused));
+        BOOST_TEST(!lexical::is_date(refused));
     }
     // A month that does not exist has no days.
-    BOOST_TEST_EQ(webcpp::formats::detail::days_in_month(2021, 0), 0);
-    BOOST_TEST_EQ(webcpp::formats::detail::days_in_month(2021, 13), 0);
+    BOOST_TEST_EQ(webcpp::lexical::detail::days_in_month(2021, 0), 0);
+    BOOST_TEST_EQ(webcpp::lexical::detail::days_in_month(2021, 13), 0);
 }
 
 void a_date_has_four_digits_then_two_and_two() {
@@ -93,7 +93,7 @@ void a_date_has_four_digits_then_two_and_two() {
         sample{.text = "2021-01-1", .valid = false},
         sample{.text = "2021/01/01", .valid = false},
     };
-    const auto is = [](std::string_view s) { return formats::is_date(s); };
+    const auto is = [](std::string_view s) { return lexical::is_date(s); };
     check("date digits", dates, is, fg::date_rule);
 }
 
@@ -106,7 +106,7 @@ void february_29_in_gregorian_leap_years_only() {
         sample{.text = "2100-02-29", .valid = false},  //
         sample{.text = "2021-02-29", .valid = false},  // not by 4
     };
-    const auto is = [](std::string_view s) { return formats::is_date(s); };
+    const auto is = [](std::string_view s) { return lexical::is_date(s); };
     check("leap years", leap_days, is, fg::date_rule);
 }
 
@@ -126,7 +126,7 @@ void leap_seconds_at_each_offset() {
         sample{.text = "23:58:60Z", .valid = false},
         sample{.text = "23:59:61Z", .valid = false},
     };
-    const auto allowed = [](std::string_view s) { return formats::is_time(s); };
+    const auto allowed = [](std::string_view s) { return lexical::is_time(s); };
     check("leap seconds allowed", allowed_samples, allowed, fg::time_rule);
     constexpr std::array refused_samples{
         sample{.text = "23:59:60Z", .valid = false},
@@ -135,10 +135,10 @@ void leap_seconds_at_each_offset() {
         sample{.text = "23:59:59Z", .valid = true},
     };
     const auto refused = [](std::string_view s) {
-        return formats::is_time(s, formats::leap_seconds::refused);
+        return lexical::is_time(s, lexical::leap_seconds::refused);
     };
     check("leap seconds refused", refused_samples, refused,
-          fg::time_rule_t{formats::leap_seconds::refused});
+          fg::time_rule_t{lexical::leap_seconds::refused});
 }
 
 void times_and_their_parts() {
@@ -158,7 +158,7 @@ void times_and_their_parts() {
         sample{.text = "8:30:06Z", .valid = false},
         sample{.text = "08:30:06Z ", .valid = false},
     };
-    const auto is = [](std::string_view s) { return formats::is_time(s); };
+    const auto is = [](std::string_view s) { return lexical::is_time(s); };
     check("times", times, is, fg::time_rule);
 }
 
@@ -171,7 +171,7 @@ void date_times_in_either_case() {
         sample{.text = "2021-02-29T00:00:00Z", .valid = false},
         sample{.text = "1963-06-19T08:30:06Ztail", .valid = false},
     };
-    const auto is = [](std::string_view s) { return formats::is_date_time(s); };
+    const auto is = [](std::string_view s) { return lexical::is_date_time(s); };
     check("date-times", date_times, is, fg::date_time_rule);
 }
 
@@ -203,7 +203,7 @@ void durations_of_appendix_a() {
         sample{.text = "P1D1Y", .valid = false},          // out of order
         sample{.text = "PT1S1M", .valid = false},         //
     };
-    const auto is = [](std::string_view s) { return formats::is_duration(s); };
+    const auto is = [](std::string_view s) { return lexical::is_duration(s); };
     check("durations", durations, is, fg::duration_rule);
 }
 
@@ -215,18 +215,18 @@ void duration_designators_in_either_case() {
         sample{.text = "P1y2m3dT4h5m6s", .valid = true},
         sample{.text = "p1w", .valid = true},
     };
-    const auto is = [](std::string_view s) { return formats::is_duration(s); };
+    const auto is = [](std::string_view s) { return lexical::is_duration(s); };
     check("lowercase designators", lowercase, is, fg::duration_rule);
 }
 
 void nul_is_no_part_of_a_date_or_a_time() {
-    BOOST_TEST(!formats::is_date(std::string_view("2020-01-01\0", 11)));
-    BOOST_TEST(!formats::is_time(std::string_view("12:00:00\0Z", 10)));
-    BOOST_TEST(!formats::is_date_time(std::string_view("2020-01-01T12:00:00Z\0", 21)));
-    BOOST_TEST(!formats::is_duration(std::string_view("P1\0D", 4)));
+    BOOST_TEST(!lexical::is_date(std::string_view("2020-01-01\0", 11)));
+    BOOST_TEST(!lexical::is_time(std::string_view("12:00:00\0Z", 10)));
+    BOOST_TEST(!lexical::is_date_time(std::string_view("2020-01-01T12:00:00Z\0", 21)));
+    BOOST_TEST(!lexical::is_duration(std::string_view("P1\0D", 4)));
     // A NUL after a whole time or duration: what precedes it would be valid alone.
-    BOOST_TEST(!formats::is_time(std::string_view("12:00:00Z\0", 10)));
-    BOOST_TEST(!formats::is_duration(std::string_view("P1D\0", 4)));
+    BOOST_TEST(!lexical::is_time(std::string_view("12:00:00Z\0", 10)));
+    BOOST_TEST(!lexical::is_duration(std::string_view("P1D\0", 4)));
 }
 
 /** Checks that `rule` refuses `text` with `expected` and leaves the iterator where it was. */
@@ -246,7 +246,7 @@ void a_rule_that_fails_leaves_its_input() {
     leaves_its_input(fg::date_rule, "2021-1-01", urlg::error::invalid);
     leaves_its_input(fg::time_rule, "T12:00:00Z", urlg::error::mismatch);
     leaves_its_input(fg::time_rule, "12:00:00", urlg::error::invalid);
-    leaves_its_input(fg::time_rule_t{formats::leap_seconds::refused}, "23:59:60Z",
+    leaves_its_input(fg::time_rule_t{lexical::leap_seconds::refused}, "23:59:60Z",
                      urlg::error::invalid);
     leaves_its_input(fg::date_time_rule, "2021-01-01X00:00:00Z", urlg::error::invalid);
     leaves_its_input(fg::duration_rule, "1D", urlg::error::mismatch);

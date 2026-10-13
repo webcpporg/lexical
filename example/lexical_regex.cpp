@@ -4,9 +4,9 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// ECMA-262 patterns, judged by formats' syntax validator: each is checked, never compiled or run.
+// ECMA-262 patterns, judged by lexical's syntax validator: each is checked, never compiled or run.
 
-#include <webcpp/formats/regex.hpp>
+#include <webcpp/lexical/regex.hpp>
 
 #include <iostream>
 #include <string_view>
@@ -22,7 +22,7 @@ int main() {
              "(?i)abc",
              "(?i:abc)",
          }) {
-        std::cout << pattern << " -> " << (webcpp::formats::is_regex(pattern) ? "valid" : "invalid")
+        std::cout << pattern << " -> " << (webcpp::lexical::is_regex(pattern) ? "valid" : "invalid")
                   << '\n';
     }
     // end::program[]

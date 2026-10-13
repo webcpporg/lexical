@@ -4,8 +4,8 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# formats' CI: the superproject's reusable workflow, which builds this commit inside a checkout of
-# webcpp, on every lane formats declares, with its page, the lint and the test matrix.
+# lexical's CI: the superproject's reusable workflow, which builds this commit inside a checkout of
+# webcpp, on every lane lexical declares, with its page, the lint and the test matrix.
 name: CI
 
 on:
@@ -28,4 +28,4 @@ jobs:
     name: CI
     uses: webcpporg/webcpp/.github/workflows/library.yml@main
     with:
-      library: formats
+      library: lexical

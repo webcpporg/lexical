@@ -7,7 +7,7 @@
 // RFC 9562 section 4's UUID: the canonical forms in any case, every wrong length and dash
 // position, braces and the urn:uuid: prefix refused, and the rule inside a larger grammar.
 
-#include <webcpp/formats/uuid.hpp>
+#include <webcpp/lexical/uuid.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -19,18 +19,18 @@
 #include <string>
 #include <string_view>
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
 void check(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_uuid(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_uuid(text), valid)) {
         std::cerr << "uuid: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_uuid(text), urlg::parse(text, fg::uuid_rule).has_value());
+    BOOST_TEST_EQ(lexical::is_uuid(text), urlg::parse(text, fg::uuid_rule).has_value());
 }
 
 void canonical_forms_in_any_case() {

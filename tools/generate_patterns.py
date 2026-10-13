@@ -5,7 +5,7 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-"""Writes the patterns that formats' regular expressions are compared with V8 on.
+"""Writes the patterns that lexical's regular expressions are compared with V8 on.
 
 Usage: generate_patterns.py [--cache DIR] [PATTERNS]
 
@@ -13,7 +13,7 @@ The one output is written at the path given, or by default at its place in the l
 test/regex/cases/patterns.json, a JSON array of distinct patterns, sorted, one a line, every
 character outside printable ASCII escaped. The oracle of test/oracle asks V8 which of them
 `new RegExp(pattern, "u")` accepts and writes its answers in test/regex/expected/; the test
-regex_v8 asks formats' is_regex the same, on every target.
+regex_v8 asks lexical's is_regex the same, on every target.
 
 The patterns are of three kinds:
 
@@ -232,7 +232,7 @@ def generate(cache: Path | None, outputs: list[Path]) -> None:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
-        description='Writes the patterns formats\' regular expressions are compared with V8 on.')
+        description='Writes the patterns lexical\'s regular expressions are compared with V8 on.')
     parser.add_argument('--cache', type=Path, default=None,
                         help='where the pinned files are kept (default: bin/unicode/<version>)')
     parser.add_argument('outputs', type=Path, nargs='*',

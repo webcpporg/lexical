@@ -7,14 +7,14 @@
 // Where an internationalized name ends inside a larger grammar: UTS 46 may map any non-ASCII code
 // point, so only ASCII ends a run.
 
-#ifndef WEBCPP_FORMATS_DETAIL_IDN_SCAN_HPP
-#define WEBCPP_FORMATS_DETAIL_IDN_SCAN_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_IDN_SCAN_HPP
+#define WEBCPP_LEXICAL_DETAIL_IDN_SCAN_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/charsets.hpp>
+#include <webcpp/lexical/detail/charsets.hpp>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /** What an IDN run is: a whole domain name, or one label of it. */
 enum class idn_run {
@@ -65,6 +65,6 @@ constexpr char const* scan_idn_run(char const* first, char const* end, idn_run k
     return last;
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_IDN_SCAN_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_IDN_SCAN_HPP

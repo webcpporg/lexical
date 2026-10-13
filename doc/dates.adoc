@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-dates]
+[#lexical-dates]
 == Dates and times
 
 `is_date_time`, `is_date` and `is_time` check RFC 3339's `date-time`,

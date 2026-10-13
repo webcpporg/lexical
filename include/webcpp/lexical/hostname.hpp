@@ -10,14 +10,14 @@
 
  @see "Addresses", in the guide.
 */
-#ifndef WEBCPP_FORMATS_HOSTNAME_HPP
-#define WEBCPP_FORMATS_HOSTNAME_HPP
+#ifndef WEBCPP_LEXICAL_HOSTNAME_HPP
+#define WEBCPP_LEXICAL_HOSTNAME_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/charsets.hpp>
-#include <webcpp/formats/detail/idn_scan.hpp>
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/detail/charsets.hpp>
+#include <webcpp/lexical/detail/idn_scan.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <webcpp/idna/options.hpp>
 #include <webcpp/idna/uts46.hpp>
@@ -36,7 +36,7 @@
 #include <cstddef>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 namespace detail {
 
@@ -218,7 +218,7 @@ struct idn_hostname_rule_t {
 };
 
 /**
- The rule of one label of an internationalized host name, a terminal of formats' own that asks
+ The rule of one label of an internationalized host name, a terminal of lexical's own that asks
  `webcpp::idna` for its verdict.
 
  The run stops also at `.`, U+3002, U+FF0E and U+FF61, so a grammar composes labels with its own
@@ -285,6 +285,6 @@ inline result<text> idna_label_rule_t::parse(char const*& it, char const* end) c
     return detail::urlg::parse(s, grammar::idn_hostname_rule).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_HOSTNAME_HPP
+#endif  // WEBCPP_LEXICAL_HOSTNAME_HPP

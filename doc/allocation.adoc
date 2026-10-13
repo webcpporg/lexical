@@ -4,7 +4,7 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-allocation]
+[#lexical-allocation]
 == Allocation
 
 A validator and a rule allocate nothing, but the IRI functions, which allocate
@@ -13,7 +13,7 @@ only through a memory resource, where the table below says:
 [%header,cols="3,5"]
 |===
 | Function or rule | Allocates
-| every validator and rule but those below | never: Boost.URL's views and formats' rules hold no storage, idna works in fixed storage, a `range_rule` keeps its rule inline, and `is_regex` reads its pattern in place (<<formats-regex-allocation>>)
+| every validator and rule but those below | never: Boost.URL's views and lexical's rules hold no storage, idna works in fixed storage, a `range_rule` keeps its rule inline, and `is_regex` reads its pattern in place (<<lexical-regex-allocation>>)
 | `is_iri`, `is_iri_reference`, `iri_rule`, `iri_reference_rule` | never for an ASCII IRI or one whose mapped URI fits 1,024 octets; beyond, one buffer of the mapped length, from the resource given, else `std::pmr::get_default_resource()`
 |===
 
@@ -24,4 +24,4 @@ target.
 
 The stack holds the rest: an IRI's buffer of 1,024 octets, idna's working
 storage of a label, and the descent of `is_regex` into a pattern's groups,
-which `max_regex_nesting` bounds (<<formats-regex-bounds>>).
+which `max_regex_nesting` bounds (<<lexical-regex-bounds>>).

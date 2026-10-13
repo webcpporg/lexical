@@ -7,12 +7,12 @@
 // What the syntax of an ECMA-262 pattern reads of Unicode, from the generated tables: whether a
 // name is one \p{...} accepts, and whether a code point may start or continue a group's name.
 
-#ifndef WEBCPP_FORMATS_DETAIL_REGEX_UNICODE_HPP
-#define WEBCPP_FORMATS_DETAIL_REGEX_UNICODE_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_REGEX_UNICODE_HPP
+#define WEBCPP_LEXICAL_DETAIL_REGEX_UNICODE_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/regex_tables.hpp>
+#include <webcpp/lexical/detail/regex_tables.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -20,7 +20,7 @@
 #include <span>
 #include <string_view>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /** Whether the sorted `names` hold `name`. */
 constexpr bool has_name(std::span<const std::string_view> names, std::string_view name) noexcept {
@@ -52,6 +52,6 @@ constexpr bool is_name_part(char32_t cp) noexcept {
     return cp == '$' || cp == 0x200C || cp == 0x200D || in_ranges(regex_tables::id_continue, cp);
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_REGEX_UNICODE_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_REGEX_UNICODE_HPP

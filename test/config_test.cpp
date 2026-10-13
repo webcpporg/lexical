@@ -4,15 +4,15 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// <webcpp/formats/config.hpp> defines WEBCPP_FORMATS_NO_EXCEPTIONS exactly when
+// <webcpp/lexical/config.hpp> defines WEBCPP_LEXICAL_NO_EXCEPTIONS exactly when
 // webcpp has no exceptions, and keeps the developer's own definition in a build
 // that has them. test/Jamfile builds this file three times: as the build asks;
 // with WEBCPP_NO_EXCEPTIONS defined as a developer defines it for every webcpp
-// library, which WEBCPP_TEST_FORMATS_ALL_OFF tells this file; and with the
-// macro itself defined as a developer defines it for formats alone, on the
-// command line, which WEBCPP_TEST_FORMATS_DEVELOPER_DEFINED tells this file.
+// library, which WEBCPP_TEST_LEXICAL_ALL_OFF tells this file; and with the
+// macro itself defined as a developer defines it for lexical alone, on the
+// command line, which WEBCPP_TEST_LEXICAL_DEVELOPER_DEFINED tells this file.
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
 // webcpp's configuration, which config.hpp includes, has said whether webcpp
 // has exceptions: without it, WEBCPP_HAS_EXCEPTIONS would never be defined, and
@@ -21,14 +21,14 @@
 #error "config.hpp does not include <webcpp/config.hpp>"
 #endif
 
-#ifdef WEBCPP_TEST_FORMATS_ALL_OFF
-#ifndef WEBCPP_FORMATS_NO_EXCEPTIONS
-#error "WEBCPP_NO_EXCEPTIONS does not define WEBCPP_FORMATS_NO_EXCEPTIONS"
+#ifdef WEBCPP_TEST_LEXICAL_ALL_OFF
+#ifndef WEBCPP_LEXICAL_NO_EXCEPTIONS
+#error "WEBCPP_NO_EXCEPTIONS does not define WEBCPP_LEXICAL_NO_EXCEPTIONS"
 #endif
-#elif defined(WEBCPP_TEST_FORMATS_DEVELOPER_DEFINED)
-#ifndef WEBCPP_FORMATS_NO_EXCEPTIONS
-#error "config.hpp drops WEBCPP_FORMATS_NO_EXCEPTIONS, which the developer defined"
+#elif defined(WEBCPP_TEST_LEXICAL_DEVELOPER_DEFINED)
+#ifndef WEBCPP_LEXICAL_NO_EXCEPTIONS
+#error "config.hpp drops WEBCPP_LEXICAL_NO_EXCEPTIONS, which the developer defined"
 #endif
-#elif defined(WEBCPP_HAS_EXCEPTIONS) == defined(WEBCPP_FORMATS_NO_EXCEPTIONS)
-#error "WEBCPP_FORMATS_NO_EXCEPTIONS is not defined exactly when webcpp has no exceptions"
+#elif defined(WEBCPP_HAS_EXCEPTIONS) == defined(WEBCPP_LEXICAL_NO_EXCEPTIONS)
+#error "WEBCPP_LEXICAL_NO_EXCEPTIONS is not defined exactly when webcpp has no exceptions"
 #endif

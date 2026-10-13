@@ -9,15 +9,15 @@
 
  @see "URI templates", in the guide.
 */
-#ifndef WEBCPP_FORMATS_URI_TEMPLATE_HPP
-#define WEBCPP_FORMATS_URI_TEMPLATE_HPP
+#ifndef WEBCPP_LEXICAL_URI_TEMPLATE_HPP
+#define WEBCPP_LEXICAL_URI_TEMPLATE_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/charsets.hpp>
-#include <webcpp/formats/detail/rules.hpp>
-#include <webcpp/formats/detail/utf8.hpp>
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/detail/charsets.hpp>
+#include <webcpp/lexical/detail/rules.hpp>
+#include <webcpp/lexical/detail/utf8.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
@@ -35,7 +35,7 @@
 #include <cstddef>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 namespace detail {
 
@@ -239,6 +239,6 @@ inline result<text> uri_template_rule_t::parse(char const*& it, char const* end)
     return detail::urlg::parse(s, grammar::uri_template_rule).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_URI_TEMPLATE_HPP
+#endif  // WEBCPP_LEXICAL_URI_TEMPLATE_HPP

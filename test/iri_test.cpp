@@ -9,7 +9,7 @@
 // a relative reference, the inline buffer's edge, an ASCII IRI that never touches the resource,
 // NUL, and where the rules stop inside a larger grammar.
 
-#include <webcpp/formats/uri.hpp>
+#include <webcpp/lexical/uri.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 #include <boost/url/grammar/delim_rule.hpp>
@@ -26,26 +26,26 @@
 
 #include "counting_resource.hpp"
 
-namespace formats = webcpp::formats;
-namespace fg = webcpp::formats::grammar;
+namespace lexical = webcpp::lexical;
+namespace fg = webcpp::lexical::grammar;
 namespace urlg = boost::urls::grammar;
 
 namespace {
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
 void iri(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_iri(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_iri(text), valid)) {
         std::cerr << "iri: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_iri(text), urlg::parse(text, fg::iri_rule).has_value());
+    BOOST_TEST_EQ(lexical::is_iri(text), urlg::parse(text, fg::iri_rule).has_value());
 }
 
 /** Checks `text` against `valid`, and that the function and the rule agree. */
 void reference(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_iri_reference(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_iri_reference(text), valid)) {
         std::cerr << "iri-reference: \"" << text << "\"\n";
     }
-    BOOST_TEST_EQ(formats::is_iri_reference(text),
+    BOOST_TEST_EQ(lexical::is_iri_reference(text),
                   urlg::parse(text, fg::iri_reference_rule).has_value());
 }
 
@@ -146,7 +146,7 @@ void the_query_is_before_the_first_number_sign() {
 
 void one_number_sign_before_the_fragment() {
     // RFC 3987's ifragment, as RFC 3986's fragment, holds no "#" but percent-encoded; Boost.URL
-    // takes one, and formats refuses it in the mapped URI.
+    // takes one, and lexical refuses it in the mapped URI.
     iri("http://\xC3\xA9/#x#y", false);
     iri("http://a/#\xC3\xA9#", false);
     iri("http://a/?\xEE\x80\x80#x#\xC3\xA9", false);
@@ -177,10 +177,10 @@ void the_inline_buffer_and_the_resource() {
     }
     at_capacity += 'x';
     webcpp::test::counting_resource inline_buffer;
-    BOOST_TEST(formats::is_iri(at_capacity, inline_buffer));
+    BOOST_TEST(lexical::is_iri(at_capacity, inline_buffer));
     BOOST_TEST_EQ(inline_buffer.allocations, 0U);
     webcpp::test::counting_resource beyond;
-    BOOST_TEST(formats::is_iri(at_capacity + "x", beyond));
+    BOOST_TEST(lexical::is_iri(at_capacity + "x", beyond));
     BOOST_TEST_EQ(beyond.allocations, 1U);
     BOOST_TEST_EQ(beyond.bytes, 1025U);
     BOOST_TEST_EQ(beyond.deallocations, 1U);
@@ -192,7 +192,7 @@ void the_inline_buffer_and_the_resource() {
     worst += "\xE2\x82\xAC";
     BOOST_TEST_EQ(worst.size(), 341U);
     webcpp::test::counting_resource none;
-    BOOST_TEST(formats::is_iri_reference(worst, none));
+    BOOST_TEST(lexical::is_iri_reference(worst, none));
     BOOST_TEST_EQ(none.allocations, 0U);
     // The spec's edge in non-ASCII octets alone: 341 map to 1,023, inline; 342 map to 1,026, one
     // buffer of exactly that length.
@@ -203,14 +203,14 @@ void the_inline_buffer_and_the_resource() {
     octets341 += "\xC3\xA9";
     BOOST_TEST_EQ(octets341.size(), 341U);
     webcpp::test::counting_resource stays_inline;
-    BOOST_TEST(formats::is_iri_reference(octets341, stays_inline));
+    BOOST_TEST(lexical::is_iri_reference(octets341, stays_inline));
     BOOST_TEST_EQ(stays_inline.allocations, 0U);
     std::string octets342;
     for (int i = 0; i < 171; ++i) {
         octets342 += "\xC3\xA9";
     }
     webcpp::test::counting_resource one_buffer;
-    BOOST_TEST(formats::is_iri_reference(octets342, one_buffer));
+    BOOST_TEST(lexical::is_iri_reference(octets342, one_buffer));
     BOOST_TEST_EQ(one_buffer.allocations, 1U);
     BOOST_TEST_EQ(one_buffer.bytes, 1026U);
     BOOST_TEST_EQ(one_buffer.deallocations, 1U);
@@ -224,15 +224,15 @@ void a_refused_iri_never_touches_the_resource() {
         refused += "\xC3\xA9";
     }
     refused += "\xEE\x80\x80";
-    BOOST_TEST(!formats::is_iri(refused, *std::pmr::null_memory_resource()));
-    BOOST_TEST(!formats::is_iri_reference(refused, *std::pmr::null_memory_resource()));
+    BOOST_TEST(!lexical::is_iri(refused, *std::pmr::null_memory_resource()));
+    BOOST_TEST(!lexical::is_iri_reference(refused, *std::pmr::null_memory_resource()));
 }
 
 void an_ascii_iri_never_touches_the_resource() {
     std::string long_ascii = "http://example.com/";
     long_ascii.append(1'000'000, 'a');
-    BOOST_TEST(formats::is_iri(long_ascii, *std::pmr::null_memory_resource()));
-    BOOST_TEST(formats::is_iri_reference(long_ascii, *std::pmr::null_memory_resource()));
+    BOOST_TEST(lexical::is_iri(long_ascii, *std::pmr::null_memory_resource()));
+    BOOST_TEST(lexical::is_iri_reference(long_ascii, *std::pmr::null_memory_resource()));
 }
 
 void the_rules_inside_a_grammar() {

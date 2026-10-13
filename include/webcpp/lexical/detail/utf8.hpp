@@ -4,18 +4,18 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// Strict UTF-8 decoding (RFC 3629), formats' own: no library reaches into another's detail.
+// Strict UTF-8 decoding (RFC 3629), lexical's own: no library reaches into another's detail.
 
-#ifndef WEBCPP_FORMATS_DETAIL_UTF8_HPP
-#define WEBCPP_FORMATS_DETAIL_UTF8_HPP
+#ifndef WEBCPP_LEXICAL_DETAIL_UTF8_HPP
+#define WEBCPP_LEXICAL_DETAIL_UTF8_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
 #include <array>
 #include <cstddef>
 #include <string_view>
 
-namespace webcpp::formats::detail {
+namespace webcpp::lexical::detail {
 
 /**
  Decodes the code point at `s[i]` into `cp` and moves `i` past it; false, `i` and `cp` unchanged,
@@ -63,6 +63,6 @@ constexpr bool decode_utf8(std::string_view s, std::size_t& i, char32_t& cp) noe
     return true;
 }
 
-}  // namespace webcpp::formats::detail
+}  // namespace webcpp::lexical::detail
 
-#endif  // WEBCPP_FORMATS_DETAIL_UTF8_HPP
+#endif  // WEBCPP_LEXICAL_DETAIL_UTF8_HPP

@@ -7,7 +7,7 @@
 // IRIs with a memory resource of the program's own: a long IRI's mapped copy is taken from it, a
 // short one stays on the stack.
 
-#include <webcpp/formats.hpp>
+#include <webcpp/lexical.hpp>
 
 #include <array>
 #include <cstddef>
@@ -15,7 +15,7 @@
 #include <memory_resource>
 #include <string>
 
-namespace formats = webcpp::formats;
+namespace lexical = webcpp::lexical;
 
 int main() {
     // tag::resource[]
@@ -28,9 +28,9 @@ int main() {
     }
     std::cout << std::boolalpha;
     std::cout << "short: "
-              << formats::is_iri("http://\306\222\303\270\303\270.example/\317\200", resource)
+              << lexical::is_iri("http://\306\222\303\270\303\270.example/\317\200", resource)
               << '\n';
-    std::cout << "long: " << formats::is_iri(long_iri, resource) << '\n';
-    std::cout << "bidi: " << formats::is_iri("http://a/\342\200\216", resource) << '\n';
+    std::cout << "long: " << lexical::is_iri(long_iri, resource) << '\n';
+    std::cout << "bidi: " << lexical::is_iri("http://a/\342\200\216", resource) << '\n';
     // end::resource[]
 }

@@ -4,20 +4,20 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-// Tests what formats allocates, by counting every call of the global operator new this program
+// Tests what lexical allocates, by counting every call of the global operator new this program
 // makes: nothing for every validator and rule, on long and hostile inputs, but the IRI functions
 // beyond their inline buffer, which allocate only through the resource they are given. is_regex
 // allocates nothing at all, on valid, invalid and hostile patterns alike.
 
-#include <webcpp/formats/date_time.hpp>
-#include <webcpp/formats/email.hpp>
-#include <webcpp/formats/hostname.hpp>
-#include <webcpp/formats/ip.hpp>
-#include <webcpp/formats/json_pointer.hpp>
-#include <webcpp/formats/regex.hpp>
-#include <webcpp/formats/uri.hpp>
-#include <webcpp/formats/uri_template.hpp>
-#include <webcpp/formats/uuid.hpp>
+#include <webcpp/lexical/date_time.hpp>
+#include <webcpp/lexical/email.hpp>
+#include <webcpp/lexical/hostname.hpp>
+#include <webcpp/lexical/ip.hpp>
+#include <webcpp/lexical/json_pointer.hpp>
+#include <webcpp/lexical/regex.hpp>
+#include <webcpp/lexical/uri.hpp>
+#include <webcpp/lexical/uri_template.hpp>
+#include <webcpp/lexical/uuid.hpp>
 
 #include <boost/config.hpp>
 #include <boost/core/lightweight_test.hpp>
@@ -46,7 +46,7 @@ namespace {
 // it gave. They are mutable global state, which no library holds: this test program's own
 // instruments, the one place where the replaced operators below can record what they see. A
 // direct call of malloc, calloc or realloc is not counted: interposing them is outside this
-// test, and formats calls none of them.
+// test, and lexical calls none of them.
 std::size_t global_new_calls = 0;     // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 std::size_t global_delete_calls = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -227,11 +227,11 @@ void dates_and_times_allocate_nothing() {
     duration.append(100'000, '7');
     duration += 'D';
     const std::size_t before = global_allocations();
-    BOOST_TEST(webcpp::formats::is_date_time(fraction));
-    BOOST_TEST(webcpp::formats::is_duration(duration));
-    BOOST_TEST(webcpp::formats::is_date("2020-02-29"));
-    BOOST_TEST(webcpp::formats::is_time("23:59:60Z"));
-    BOOST_TEST(!webcpp::formats::is_time("23:59:60Z", webcpp::formats::leap_seconds::refused));
+    BOOST_TEST(webcpp::lexical::is_date_time(fraction));
+    BOOST_TEST(webcpp::lexical::is_duration(duration));
+    BOOST_TEST(webcpp::lexical::is_date("2020-02-29"));
+    BOOST_TEST(webcpp::lexical::is_time("23:59:60Z"));
+    BOOST_TEST(!webcpp::lexical::is_time("23:59:60Z", webcpp::lexical::leap_seconds::refused));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
@@ -242,9 +242,9 @@ void identifiers_allocate_nothing() {
         pointer += "/\xC3\xA9~0";
     }
     const std::size_t before = global_allocations();
-    BOOST_TEST(webcpp::formats::is_json_pointer(pointer));
-    BOOST_TEST(webcpp::formats::is_relative_json_pointer("2/highly/nested/objects"));
-    BOOST_TEST(webcpp::formats::is_uuid("2eb8aa08-aa98-11ea-b4aa-73b441d16380"));
+    BOOST_TEST(webcpp::lexical::is_json_pointer(pointer));
+    BOOST_TEST(webcpp::lexical::is_relative_json_pointer("2/highly/nested/objects"));
+    BOOST_TEST(webcpp::lexical::is_uuid("2eb8aa08-aa98-11ea-b4aa-73b441d16380"));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
@@ -253,11 +253,11 @@ void uris_allocate_nothing() {
     std::string long_uri = "http://example.com/";
     long_uri.append(100'000, 'a');
     const std::size_t before = global_allocations();
-    BOOST_TEST(webcpp::formats::is_ipv4("192.168.0.1"));
-    BOOST_TEST(webcpp::formats::is_ipv6("2001:DB8::8:800:200C:417A"));
-    BOOST_TEST(webcpp::formats::is_uri(long_uri));
-    BOOST_TEST(webcpp::formats::is_uri_reference("//example.com/p"));
-    BOOST_TEST(!webcpp::formats::is_uri_reference("//a@b@example.com/"));
+    BOOST_TEST(webcpp::lexical::is_ipv4("192.168.0.1"));
+    BOOST_TEST(webcpp::lexical::is_ipv6("2001:DB8::8:800:200C:417A"));
+    BOOST_TEST(webcpp::lexical::is_uri(long_uri));
+    BOOST_TEST(webcpp::lexical::is_uri_reference("//example.com/p"));
+    BOOST_TEST(!webcpp::lexical::is_uri_reference("//a@b@example.com/"));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
@@ -273,11 +273,11 @@ void hosts_allocate_nothing() {
     long_name += "com";
     const std::string long_email = "a@" + long_name;
     const std::size_t before = global_allocations();
-    BOOST_TEST(!webcpp::formats::is_hostname(long_name));
-    BOOST_TEST(webcpp::formats::is_hostname("xn--9n2bp8q.xn--9t4b11yi5a"));
-    BOOST_TEST(!webcpp::formats::is_hostname("xn--07jceefgh4c"));
-    BOOST_TEST(webcpp::formats::is_email("\"joe bloggs\"@[IPv6:2001:db8::1]"));
-    BOOST_TEST(!webcpp::formats::is_email(long_email));
+    BOOST_TEST(!webcpp::lexical::is_hostname(long_name));
+    BOOST_TEST(webcpp::lexical::is_hostname("xn--9n2bp8q.xn--9t4b11yi5a"));
+    BOOST_TEST(!webcpp::lexical::is_hostname("xn--07jceefgh4c"));
+    BOOST_TEST(webcpp::lexical::is_email("\"joe bloggs\"@[IPv6:2001:db8::1]"));
+    BOOST_TEST(!webcpp::lexical::is_email(long_email));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
 
@@ -305,17 +305,17 @@ void iris_and_templates_allocate_within_their_bounds() {
     webcpp::test::counting_resource resource;
     const std::size_t before = global_allocations();
     const std::size_t released = global_deallocations();
-    BOOST_TEST(webcpp::formats::is_iri(within));
-    BOOST_TEST(webcpp::formats::is_iri(long_ascii));
-    BOOST_TEST(webcpp::formats::is_iri_reference("//\xC6\x92\xC3\xB8\xC3\xB8.example/"));
-    BOOST_TEST(webcpp::formats::is_uri_template(long_template));
+    BOOST_TEST(webcpp::lexical::is_iri(within));
+    BOOST_TEST(webcpp::lexical::is_iri(long_ascii));
+    BOOST_TEST(webcpp::lexical::is_iri_reference("//\xC6\x92\xC3\xB8\xC3\xB8.example/"));
+    BOOST_TEST(webcpp::lexical::is_uri_template(long_template));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
-    BOOST_TEST(webcpp::formats::is_iri(beyond, resource));
+    BOOST_TEST(webcpp::lexical::is_iri(beyond, resource));
     BOOST_TEST_EQ(resource.allocations, 1U);
     BOOST_TEST_EQ(resource.bytes, 9U + 600'000U);
     BOOST_TEST_EQ(resource.deallocations, 1U);
     BOOST_TEST_EQ(global_allocations() - before, 1U);
-    BOOST_TEST(webcpp::formats::is_iri_reference(beyond));
+    BOOST_TEST(webcpp::lexical::is_iri_reference(beyond));
     BOOST_TEST_EQ(global_allocations() - before, 2U);
     // Each buffer is given back, the default resource's as the given one's.
     BOOST_TEST_EQ(global_deallocations() - released, 2U);
@@ -343,20 +343,20 @@ void idn_allocates_nothing() {
     // 55 "a" and "u" with diaeresis: an A-label of 63 octets.
     const std::string label = std::string(55, 'a') + "\xC3\xBC";
     std::size_t before = global_allocations();
-    BOOST_TEST(webcpp::formats::is_idn_hostname(long_idn));
+    BOOST_TEST(webcpp::lexical::is_idn_hostname(long_idn));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
     before = global_allocations();
-    BOOST_TEST(!webcpp::formats::is_idn_hostname(hostile));
+    BOOST_TEST(!webcpp::lexical::is_idn_hostname(hostile));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
     before = global_allocations();
-    BOOST_TEST(webcpp::formats::is_idn_email(mailbox));
+    BOOST_TEST(webcpp::lexical::is_idn_email(mailbox));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
     before = global_allocations();
-    BOOST_TEST(!webcpp::formats::is_idn_email(refused));
+    BOOST_TEST(!webcpp::lexical::is_idn_email(refused));
     BOOST_TEST_EQ(global_allocations() - before, 0U);
     before = global_allocations();
     char const* it = label.data();
-    BOOST_TEST(webcpp::formats::grammar::idna_label_rule.parse(it, label.data() + label.size())
+    BOOST_TEST(webcpp::lexical::grammar::idna_label_rule.parse(it, label.data() + label.size())
                    .has_value());
     BOOST_TEST_EQ(global_allocations() - before, 0U);
 }
@@ -379,24 +379,24 @@ void every_format_answers_a_megabyte() {
     }
     webcpp::test::counting_resource resource;
     const std::size_t before = global_allocations();
-    namespace formats = webcpp::formats;
-    BOOST_TEST(!formats::is_date_time(digits));
-    BOOST_TEST(!formats::is_time(digits));
-    BOOST_TEST(!formats::is_duration(digits));
-    BOOST_TEST(!formats::is_uuid(letters));
-    BOOST_TEST(!formats::is_json_pointer(letters));
-    BOOST_TEST(formats::is_relative_json_pointer(digits));
-    BOOST_TEST(!formats::is_ipv4(digits));
-    BOOST_TEST(!formats::is_ipv6(digits));
-    BOOST_TEST(!formats::is_uri(letters));
-    BOOST_TEST(formats::is_uri_reference(letters));
-    BOOST_TEST(formats::is_iri_reference(umlauts, resource));
-    BOOST_TEST(formats::is_uri_template(braces));
-    BOOST_TEST(!formats::is_hostname(letters));
-    BOOST_TEST(!formats::is_idn_hostname(umlauts));
-    BOOST_TEST(!formats::is_email(letters));
-    BOOST_TEST(!formats::is_idn_email(umlauts));
-    BOOST_TEST(!formats::is_regex(letters));
+    namespace lexical = webcpp::lexical;
+    BOOST_TEST(!lexical::is_date_time(digits));
+    BOOST_TEST(!lexical::is_time(digits));
+    BOOST_TEST(!lexical::is_duration(digits));
+    BOOST_TEST(!lexical::is_uuid(letters));
+    BOOST_TEST(!lexical::is_json_pointer(letters));
+    BOOST_TEST(lexical::is_relative_json_pointer(digits));
+    BOOST_TEST(!lexical::is_ipv4(digits));
+    BOOST_TEST(!lexical::is_ipv6(digits));
+    BOOST_TEST(!lexical::is_uri(letters));
+    BOOST_TEST(lexical::is_uri_reference(letters));
+    BOOST_TEST(lexical::is_iri_reference(umlauts, resource));
+    BOOST_TEST(lexical::is_uri_template(braces));
+    BOOST_TEST(!lexical::is_hostname(letters));
+    BOOST_TEST(!lexical::is_idn_hostname(umlauts));
+    BOOST_TEST(!lexical::is_email(letters));
+    BOOST_TEST(!lexical::is_idn_email(umlauts));
+    BOOST_TEST(!lexical::is_regex(letters));
     BOOST_TEST_EQ(global_allocations() - before, resource.allocations);
 }
 
@@ -417,10 +417,10 @@ std::string nested_groups(std::size_t levels) {
  before the count starts.
 */
 void a_regex_allocates_nothing() {
-    const std::string at_bound = nested_groups(webcpp::formats::max_regex_nesting);
-    const std::string beyond_bound = nested_groups(webcpp::formats::max_regex_nesting + 1);
-    const std::string longest(webcpp::formats::max_regex_length, 'a');
-    const std::string too_long(webcpp::formats::max_regex_length + 1, 'a');
+    const std::string at_bound = nested_groups(webcpp::lexical::max_regex_nesting);
+    const std::string beyond_bound = nested_groups(webcpp::lexical::max_regex_nesting + 1);
+    const std::string longest(webcpp::lexical::max_regex_length, 'a');
+    const std::string too_long(webcpp::lexical::max_regex_length + 1, 'a');
     const std::string hostile(10'000, '(');
     const std::array samples{
         regex_sample{.pattern = "a", .valid = true},
@@ -442,7 +442,7 @@ void a_regex_allocates_nothing() {
     for (const regex_sample& sample : samples) {
         const std::size_t before = global_allocations();
         const std::size_t freed = global_deallocations();
-        BOOST_TEST_EQ(webcpp::formats::is_regex(sample.pattern), sample.valid);
+        BOOST_TEST_EQ(webcpp::lexical::is_regex(sample.pattern), sample.valid);
         BOOST_TEST_EQ(global_allocations() - before, 0U);
         BOOST_TEST_EQ(global_deallocations() - freed, 0U);
     }

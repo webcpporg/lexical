@@ -4,7 +4,7 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-# formats' oracle: V8, through Node, which judges the patterns of
+# lexical's oracle: V8, through Node, which judges the patterns of
 # test/regex/cases as JavaScript's `new RegExp(pattern, "u")` does, the
 # verdicts the test regex_v8 compares is_regex with. It needs no package: V8
 # is the Node that runs it, the CI's Node 26.7.0.

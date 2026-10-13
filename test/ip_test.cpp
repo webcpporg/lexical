@@ -7,7 +7,7 @@
 // IPv4 (RFC 2673 3.2's dotted quad, RFC 3986's dec-octet) and IPv6 (RFC 4291 2.2), through
 // Boost.URL's rules: RFC 4291 2.2's examples, leading zeros, zone ids and prefixes refused.
 
-#include <webcpp/formats/ip.hpp>
+#include <webcpp/lexical/ip.hpp>
 
 #include <boost/core/lightweight_test.hpp>
 
@@ -15,18 +15,18 @@
 #include <iostream>
 #include <string_view>
 
-namespace formats = webcpp::formats;
+namespace lexical = webcpp::lexical;
 
 namespace {
 
 void ipv4(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_ipv4(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_ipv4(text), valid)) {
         std::cerr << "ipv4: \"" << text << "\"\n";
     }
 }
 
 void ipv6(std::string_view text, bool valid) {
-    if (!BOOST_TEST_EQ(formats::is_ipv6(text), valid)) {
+    if (!BOOST_TEST_EQ(lexical::is_ipv6(text), valid)) {
         std::cerr << "ipv6: \"" << text << "\"\n";
     }
 }

@@ -4,13 +4,13 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // https://www.boost.org/LICENSE_1_0.txt)
 
-[#formats-guarantees]
+[#lexical-guarantees]
 == Guarantees
 
-. [[formats-invariant-1]]For every format but `regex`, `is_x(s)` and `parse(s, x_rule)` give the same answer for every string.
-. [[formats-invariant-2]]No function or rule allocates but those the allocation table names: the IRI functions, only through a memory resource.
-. [[formats-invariant-3]]Nothing throws but an allocation that fails.
-. [[formats-invariant-4]]Every function refuses a string that is not well-formed UTF-8.
-. [[formats-invariant-5]]A rule that fails leaves its iterator where it was.
-. [[formats-invariant-6]]`is_regex` answers every byte string, a value, and never throws: a pattern past one of its bounds is answered `false` before it can take more stack or time than the bounds allow.
-. [[formats-invariant-7]]The Unicode tables and the patterns compared with V8 are what their generators write from the pinned files, byte for byte.
+. [[lexical-invariant-1]]For every format but `regex`, `is_x(s)` and `parse(s, x_rule)` give the same answer for every string.
+. [[lexical-invariant-2]]No function or rule allocates but those the allocation table names: the IRI functions, only through a memory resource.
+. [[lexical-invariant-3]]Nothing throws but an allocation that fails.
+. [[lexical-invariant-4]]Every function refuses a string that is not well-formed UTF-8.
+. [[lexical-invariant-5]]A rule that fails leaves its iterator where it was.
+. [[lexical-invariant-6]]`is_regex` answers every byte string, a value, and never throws: a pattern past one of its bounds is answered `false` before it can take more stack or time than the bounds allow.
+. [[lexical-invariant-7]]The Unicode tables and the patterns compared with V8 are what their generators write from the pinned files, byte for byte.

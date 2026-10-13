@@ -5,9 +5,9 @@
 # accompanying file LICENSE_1_0.txt or copy at
 # https://www.boost.org/LICENSE_1_0.txt)
 
-"""Counts what formats' page says of the JSON Schema suite and of V8, which no other count holds.
+"""Counts what lexical's page says of the JSON Schema suite and of V8, which no other count holds.
 
-tools/doc/counts.py runs this script with formats' directory as its one argument, and gives the
+tools/doc/counts.py runs this script with lexical's directory as its one argument, and gives the
 page each `name=<number>` line it prints as an attribute:
 
 * for each dialect, the string tests of the format files the suite runner reads,

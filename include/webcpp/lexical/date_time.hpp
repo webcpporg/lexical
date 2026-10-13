@@ -10,13 +10,13 @@
 
  @see "Dates and times", in the guide.
 */
-#ifndef WEBCPP_FORMATS_DATE_TIME_HPP
-#define WEBCPP_FORMATS_DATE_TIME_HPP
+#ifndef WEBCPP_LEXICAL_DATE_TIME_HPP
+#define WEBCPP_LEXICAL_DATE_TIME_HPP
 
-#include <webcpp/formats/config.hpp>
+#include <webcpp/lexical/config.hpp>
 
-#include <webcpp/formats/detail/rules.hpp>
-#include <webcpp/formats/grammar.hpp>
+#include <webcpp/lexical/detail/rules.hpp>
+#include <webcpp/lexical/grammar.hpp>
 
 #include <boost/url/grammar/delim_rule.hpp>
 #include <boost/url/grammar/digit_chars.hpp>
@@ -32,7 +32,7 @@
 #include <cstddef>
 #include <string_view>
 
-namespace webcpp::formats {
+namespace webcpp::lexical {
 
 /**
  Whether a time may hold second 60, a leap second.
@@ -443,6 +443,6 @@ inline result<text> duration_rule_t::parse(char const*& it, char const* end) con
     return detail::urlg::parse(s, grammar::duration_rule).has_value();
 }
 
-}  // namespace webcpp::formats
+}  // namespace webcpp::lexical
 
-#endif  // WEBCPP_FORMATS_DATE_TIME_HPP
+#endif  // WEBCPP_LEXICAL_DATE_TIME_HPP
