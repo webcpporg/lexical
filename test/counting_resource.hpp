@@ -30,8 +30,8 @@ private:
         return ::operator new(size, std::align_val_t{alignment});
     }
 
-    void do_deallocate(void* memory, std::size_t size, std::size_t alignment) override {
-        ::operator delete(memory, size, std::align_val_t{alignment});
+    void do_deallocate(void* memory, std::size_t /*size*/, std::size_t alignment) override {
+        ::operator delete(memory, std::align_val_t{alignment});
     }
 
     [[nodiscard]] bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override {
