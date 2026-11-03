@@ -67,8 +67,16 @@ webcpp.run uri_template : uri_template_test.cpp ;
 # lexical's rules composed with Boost.URL's combinators.
 webcpp.run grammar : grammar_test.cpp ;
 # What every validator allocates: nothing, but through a resource it is
-# given; is_regex allocates nothing at all.
-webcpp.run allocation : allocation_test.cpp ;
+# given; is_regex allocates nothing at all. Keep allocation calls visible
+# to the replaced operators: compiler builtins can elide the control's
+# string allocation in Release. The explicit Release target checks this
+# instrumentation even when the requested variant is Debug.
+local allocation-requirements = <toolset>clang:<cxxflags>-fno-builtin
+  <toolset>gcc:<cxxflags>-fno-builtin
+  <toolset>emscripten:<cxxflags>-fno-builtin ;
+webcpp.run allocation : allocation_test.cpp : $(allocation-requirements) ;
+webcpp.run allocation_release : allocation_test.cpp
+  : <variant>release $(allocation-requirements) ;
 
 # The JSON Schema Test Suite comes from /webcpp/third_party, which gives its
 # root as WEBCPP_TEST_JSON_SCHEMA_TEST_SUITE and its directory to a WASI
